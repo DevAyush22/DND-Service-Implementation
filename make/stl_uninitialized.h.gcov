@@ -1,0 +1,482 @@
+        -:    0:Source:/usr/lib/gcc/x86_64-redhat-linux/4.4.7/../../../../include/c++/4.4.7/bits/stl_uninitialized.h
+        -:    0:Graph:server.gcno
+        -:    0:Data:server.gcda
+        -:    0:Runs:0
+        -:    0:Programs:0
+        -:    1:// Raw memory manipulators -*- C++ -*-
+        -:    2:
+        -:    3:// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+        -:    4:// Free Software Foundation, Inc.
+        -:    5://
+        -:    6:// This file is part of the GNU ISO C++ Library.  This library is free
+        -:    7:// software; you can redistribute it and/or modify it under the
+        -:    8:// terms of the GNU General Public License as published by the
+        -:    9:// Free Software Foundation; either version 3, or (at your option)
+        -:   10:// any later version.
+        -:   11:
+        -:   12:// This library is distributed in the hope that it will be useful,
+        -:   13:// but WITHOUT ANY WARRANTY; without even the implied warranty of
+        -:   14:// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        -:   15:// GNU General Public License for more details.
+        -:   16:
+        -:   17:// Under Section 7 of GPL version 3, you are granted additional
+        -:   18:// permissions described in the GCC Runtime Library Exception, version
+        -:   19:// 3.1, as published by the Free Software Foundation.
+        -:   20:
+        -:   21:// You should have received a copy of the GNU General Public License and
+        -:   22:// a copy of the GCC Runtime Library Exception along with this program;
+        -:   23:// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+        -:   24:// <http://www.gnu.org/licenses/>.
+        -:   25:
+        -:   26:/*
+        -:   27: *
+        -:   28: * Copyright (c) 1994
+        -:   29: * Hewlett-Packard Company
+        -:   30: *
+        -:   31: * Permission to use, copy, modify, distribute and sell this software
+        -:   32: * and its documentation for any purpose is hereby granted without fee,
+        -:   33: * provided that the above copyright notice appear in all copies and
+        -:   34: * that both that copyright notice and this permission notice appear
+        -:   35: * in supporting documentation.  Hewlett-Packard Company makes no
+        -:   36: * representations about the suitability of this software for any
+        -:   37: * purpose.  It is provided "as is" without express or implied warranty.
+        -:   38: *
+        -:   39: *
+        -:   40: * Copyright (c) 1996,1997
+        -:   41: * Silicon Graphics Computer Systems, Inc.
+        -:   42: *
+        -:   43: * Permission to use, copy, modify, distribute and sell this software
+        -:   44: * and its documentation for any purpose is hereby granted without fee,
+        -:   45: * provided that the above copyright notice appear in all copies and
+        -:   46: * that both that copyright notice and this permission notice appear
+        -:   47: * in supporting documentation.  Silicon Graphics makes no
+        -:   48: * representations about the suitability of this software for any
+        -:   49: * purpose.  It is provided "as is" without express or implied warranty.
+        -:   50: */
+        -:   51:
+        -:   52:/** @file stl_uninitialized.h
+        -:   53: *  This is an internal header file, included by other library headers.
+        -:   54: *  You should not attempt to use it directly.
+        -:   55: */
+        -:   56:
+        -:   57:#ifndef _STL_UNINITIALIZED_H
+        -:   58:#define _STL_UNINITIALIZED_H 1
+        -:   59:
+        -:   60:_GLIBCXX_BEGIN_NAMESPACE(std)
+        -:   61:
+        -:   62:  template<bool>
+        -:   63:    struct __uninitialized_copy
+        -:   64:    {
+        -:   65:      template<typename _InputIterator, typename _ForwardIterator>
+        -:   66:        static _ForwardIterator
+        -:   67:        uninitialized_copy(_InputIterator __first, _InputIterator __last,
+        -:   68:			   _ForwardIterator __result)
+        -:   69:        {
+        -:   70:	  _ForwardIterator __cur = __result;
+        -:   71:	  __try
+        -:   72:	    {
+        -:   73:	      for (; __first != __last; ++__first, ++__cur)
+        -:   74:		std::_Construct(&*__cur, *__first);
+        -:   75:	      return __cur;
+        -:   76:	    }
+        -:   77:	  __catch(...)
+        -:   78:	    {
+        -:   79:	      std::_Destroy(__result, __cur);
+        -:   80:	      __throw_exception_again;
+        -:   81:	    }
+        -:   82:	}
+        -:   83:    };
+        -:   84:
+        -:   85:  template<>
+        -:   86:    struct __uninitialized_copy<true>
+        -:   87:    {
+        -:   88:      template<typename _InputIterator, typename _ForwardIterator>
+        -:   89:        static _ForwardIterator
+        -:   90:        uninitialized_copy(_InputIterator __first, _InputIterator __last,
+        -:   91:			   _ForwardIterator __result)
+        -:   92:        { return std::copy(__first, __last, __result); }
+        -:   93:    };
+        -:   94:
+        -:   95:  /**
+        -:   96:   *  @brief Copies the range [first,last) into result.
+        -:   97:   *  @param  first  An input iterator.
+        -:   98:   *  @param  last   An input iterator.
+        -:   99:   *  @param  result An output iterator.
+        -:  100:   *  @return   result + (first - last)
+        -:  101:   *
+        -:  102:   *  Like copy(), but does not require an initialized output range.
+        -:  103:  */
+        -:  104:  template<typename _InputIterator, typename _ForwardIterator>
+        -:  105:    inline _ForwardIterator
+        -:  106:    uninitialized_copy(_InputIterator __first, _InputIterator __last,
+        -:  107:		       _ForwardIterator __result)
+        -:  108:    {
+        -:  109:      typedef typename iterator_traits<_InputIterator>::value_type
+        -:  110:	_ValueType1;
+        -:  111:      typedef typename iterator_traits<_ForwardIterator>::value_type
+        -:  112:	_ValueType2;
+        -:  113:
+        -:  114:      return std::__uninitialized_copy<(__is_pod(_ValueType1)
+        -:  115:					&& __is_pod(_ValueType2))>::
+        -:  116:	uninitialized_copy(__first, __last, __result);
+        -:  117:    }
+        -:  118:
+        -:  119:
+        -:  120:  template<bool>
+        -:  121:    struct __uninitialized_fill
+        -:  122:    {
+        -:  123:      template<typename _ForwardIterator, typename _Tp>
+        -:  124:        static void
+        -:  125:        uninitialized_fill(_ForwardIterator __first,
+        -:  126:			   _ForwardIterator __last, const _Tp& __x)
+        -:  127:        {
+        -:  128:	  _ForwardIterator __cur = __first;
+        -:  129:	  __try
+        -:  130:	    {
+        -:  131:	      for (; __cur != __last; ++__cur)
+        -:  132:		std::_Construct(&*__cur, __x);
+        -:  133:	    }
+        -:  134:	  __catch(...)
+        -:  135:	    {
+        -:  136:	      std::_Destroy(__first, __cur);
+        -:  137:	      __throw_exception_again;
+        -:  138:	    }
+        -:  139:	}
+        -:  140:    };
+        -:  141:
+        -:  142:  template<>
+        -:  143:    struct __uninitialized_fill<true>
+        -:  144:    {
+        -:  145:      template<typename _ForwardIterator, typename _Tp>
+        -:  146:        static void
+        -:  147:        uninitialized_fill(_ForwardIterator __first,
+        -:  148:			   _ForwardIterator __last, const _Tp& __x)
+        -:  149:        { std::fill(__first, __last, __x); }
+        -:  150:    };
+        -:  151:
+        -:  152:  /**
+        -:  153:   *  @brief Copies the value x into the range [first,last).
+        -:  154:   *  @param  first  An input iterator.
+        -:  155:   *  @param  last   An input iterator.
+        -:  156:   *  @param  x      The source value.
+        -:  157:   *  @return   Nothing.
+        -:  158:   *
+        -:  159:   *  Like fill(), but does not require an initialized output range.
+        -:  160:  */
+        -:  161:  template<typename _ForwardIterator, typename _Tp>
+        -:  162:    inline void
+        -:  163:    uninitialized_fill(_ForwardIterator __first, _ForwardIterator __last,
+        -:  164:		       const _Tp& __x)
+        -:  165:    {
+        -:  166:      typedef typename iterator_traits<_ForwardIterator>::value_type
+        -:  167:	_ValueType;
+        -:  168:
+        -:  169:      std::__uninitialized_fill<__is_pod(_ValueType)>::
+        -:  170:	uninitialized_fill(__first, __last, __x);
+        -:  171:    }
+        -:  172:
+        -:  173:
+        -:  174:  template<bool>
+        -:  175:    struct __uninitialized_fill_n
+        -:  176:    {
+        -:  177:      template<typename _ForwardIterator, typename _Size, typename _Tp>
+        -:  178:        static void
+        -:  179:        uninitialized_fill_n(_ForwardIterator __first, _Size __n,
+        -:  180:			     const _Tp& __x)
+        -:  181:        {
+        -:  182:	  _ForwardIterator __cur = __first;
+        -:  183:	  __try
+        -:  184:	    {
+        -:  185:	      for (; __n > 0; --__n, ++__cur)
+        -:  186:		std::_Construct(&*__cur, __x);
+        -:  187:	    }
+        -:  188:	  __catch(...)
+        -:  189:	    {
+        -:  190:	      std::_Destroy(__first, __cur);
+        -:  191:	      __throw_exception_again;
+        -:  192:	    }
+        -:  193:	}
+        -:  194:    };
+        -:  195:
+        -:  196:  template<>
+        -:  197:    struct __uninitialized_fill_n<true>
+        -:  198:    {
+        -:  199:      template<typename _ForwardIterator, typename _Size, typename _Tp>
+        -:  200:        static void
+        -:  201:        uninitialized_fill_n(_ForwardIterator __first, _Size __n,
+        -:  202:			     const _Tp& __x)
+        -:  203:        { std::fill_n(__first, __n, __x); }
+        -:  204:    };
+        -:  205:
+        -:  206:  /**
+        -:  207:   *  @brief Copies the value x into the range [first,first+n).
+        -:  208:   *  @param  first  An input iterator.
+        -:  209:   *  @param  n      The number of copies to make.
+        -:  210:   *  @param  x      The source value.
+        -:  211:   *  @return   Nothing.
+        -:  212:   *
+        -:  213:   *  Like fill_n(), but does not require an initialized output range.
+        -:  214:  */
+        -:  215:  template<typename _ForwardIterator, typename _Size, typename _Tp>
+        -:  216:    inline void
+        -:  217:    uninitialized_fill_n(_ForwardIterator __first, _Size __n, const _Tp& __x)
+        -:  218:    {
+        -:  219:      typedef typename iterator_traits<_ForwardIterator>::value_type
+        -:  220:	_ValueType;
+        -:  221:
+        -:  222:      std::__uninitialized_fill_n<__is_pod(_ValueType)>::
+        -:  223:	uninitialized_fill_n(__first, __n, __x);
+        -:  224:    }
+        -:  225:
+        -:  226:  // Extensions: versions of uninitialized_copy, uninitialized_fill,
+        -:  227:  //  and uninitialized_fill_n that take an allocator parameter.
+        -:  228:  //  We dispatch back to the standard versions when we're given the
+        -:  229:  //  default allocator.  For nondefault allocators we do not use 
+        -:  230:  //  any of the POD optimizations.
+        -:  231:
+        -:  232:  template<typename _InputIterator, typename _ForwardIterator,
+        -:  233:	   typename _Allocator>
+        -:  234:    _ForwardIterator
+        -:  235:    __uninitialized_copy_a(_InputIterator __first, _InputIterator __last,
+        -:  236:			   _ForwardIterator __result, _Allocator& __alloc)
+        -:  237:    {
+        -:  238:      _ForwardIterator __cur = __result;
+        -:  239:      __try
+        -:  240:	{
+        -:  241:	  for (; __first != __last; ++__first, ++__cur)
+        -:  242:	    __alloc.construct(&*__cur, *__first);
+        -:  243:	  return __cur;
+        -:  244:	}
+        -:  245:      __catch(...)
+        -:  246:	{
+        -:  247:	  std::_Destroy(__result, __cur, __alloc);
+        -:  248:	  __throw_exception_again;
+        -:  249:	}
+        -:  250:    }
+        -:  251:
+        -:  252:  template<typename _InputIterator, typename _ForwardIterator, typename _Tp>
+        -:  253:    inline _ForwardIterator
+        -:  254:    __uninitialized_copy_a(_InputIterator __first, _InputIterator __last,
+        -:  255:			   _ForwardIterator __result, allocator<_Tp>&)
+        -:  256:    { return std::uninitialized_copy(__first, __last, __result); }
+        -:  257:
+        -:  258:  template<typename _InputIterator, typename _ForwardIterator,
+        -:  259:	   typename _Allocator>
+        -:  260:    inline _ForwardIterator
+        -:  261:    __uninitialized_move_a(_InputIterator __first, _InputIterator __last,
+        -:  262:			   _ForwardIterator __result, _Allocator& __alloc)
+        -:  263:    {
+        -:  264:      return std::__uninitialized_copy_a(_GLIBCXX_MAKE_MOVE_ITERATOR(__first),
+        -:  265:					 _GLIBCXX_MAKE_MOVE_ITERATOR(__last),
+        -:  266:					 __result, __alloc);
+        -:  267:    }
+        -:  268:
+        -:  269:  template<typename _ForwardIterator, typename _Tp, typename _Allocator>
+        -:  270:    void
+        -:  271:    __uninitialized_fill_a(_ForwardIterator __first, _ForwardIterator __last,
+        -:  272:			   const _Tp& __x, _Allocator& __alloc)
+        -:  273:    {
+        -:  274:      _ForwardIterator __cur = __first;
+        -:  275:      __try
+        -:  276:	{
+        -:  277:	  for (; __cur != __last; ++__cur)
+        -:  278:	    __alloc.construct(&*__cur, __x);
+        -:  279:	}
+        -:  280:      __catch(...)
+        -:  281:	{
+        -:  282:	  std::_Destroy(__first, __cur, __alloc);
+        -:  283:	  __throw_exception_again;
+        -:  284:	}
+        -:  285:    }
+        -:  286:
+        -:  287:  template<typename _ForwardIterator, typename _Tp, typename _Tp2>
+        -:  288:    inline void
+        -:  289:    __uninitialized_fill_a(_ForwardIterator __first, _ForwardIterator __last,
+        -:  290:			   const _Tp& __x, allocator<_Tp2>&)
+        -:  291:    { std::uninitialized_fill(__first, __last, __x); }
+        -:  292:
+        -:  293:  template<typename _ForwardIterator, typename _Size, typename _Tp,
+        -:  294:	   typename _Allocator>
+        -:  295:    void
+        -:  296:    __uninitialized_fill_n_a(_ForwardIterator __first, _Size __n, 
+        -:  297:			     const _Tp& __x, _Allocator& __alloc)
+        -:  298:    {
+        -:  299:      _ForwardIterator __cur = __first;
+        -:  300:      __try
+        -:  301:	{
+        -:  302:	  for (; __n > 0; --__n, ++__cur)
+        -:  303:	    __alloc.construct(&*__cur, __x);
+        -:  304:	}
+        -:  305:      __catch(...)
+        -:  306:	{
+        -:  307:	  std::_Destroy(__first, __cur, __alloc);
+        -:  308:	  __throw_exception_again;
+        -:  309:	}
+        -:  310:    }
+        -:  311:
+        -:  312:  template<typename _ForwardIterator, typename _Size, typename _Tp,
+        -:  313:	   typename _Tp2>
+        -:  314:    inline void
+        -:  315:    __uninitialized_fill_n_a(_ForwardIterator __first, _Size __n, 
+        -:  316:			     const _Tp& __x, allocator<_Tp2>&)
+        -:  317:    { std::uninitialized_fill_n(__first, __n, __x); }
+        -:  318:
+        -:  319:
+        -:  320:  // Extensions: __uninitialized_copy_move, __uninitialized_move_copy,
+        -:  321:  // __uninitialized_fill_move, __uninitialized_move_fill.
+        -:  322:  // All of these algorithms take a user-supplied allocator, which is used
+        -:  323:  // for construction and destruction.
+        -:  324:
+        -:  325:  // __uninitialized_copy_move
+        -:  326:  // Copies [first1, last1) into [result, result + (last1 - first1)), and
+        -:  327:  //  move [first2, last2) into
+        -:  328:  //  [result, result + (last1 - first1) + (last2 - first2)).
+        -:  329:  template<typename _InputIterator1, typename _InputIterator2,
+        -:  330:	   typename _ForwardIterator, typename _Allocator>
+        -:  331:    inline _ForwardIterator
+        -:  332:    __uninitialized_copy_move(_InputIterator1 __first1,
+        -:  333:			      _InputIterator1 __last1,
+        -:  334:			      _InputIterator2 __first2,
+        -:  335:			      _InputIterator2 __last2,
+        -:  336:			      _ForwardIterator __result,
+        -:  337:			      _Allocator& __alloc)
+        -:  338:    {
+        -:  339:      _ForwardIterator __mid = std::__uninitialized_copy_a(__first1, __last1,
+        -:  340:							   __result,
+        -:  341:							   __alloc);
+        -:  342:      __try
+        -:  343:	{
+        -:  344:	  return std::__uninitialized_move_a(__first2, __last2, __mid, __alloc);
+        -:  345:	}
+        -:  346:      __catch(...)
+        -:  347:	{
+        -:  348:	  std::_Destroy(__result, __mid, __alloc);
+        -:  349:	  __throw_exception_again;
+        -:  350:	}
+        -:  351:    }
+        -:  352:
+        -:  353:  // __uninitialized_move_copy
+        -:  354:  // Moves [first1, last1) into [result, result + (last1 - first1)), and
+        -:  355:  //  copies [first2, last2) into
+        -:  356:  //  [result, result + (last1 - first1) + (last2 - first2)).
+        -:  357:  template<typename _InputIterator1, typename _InputIterator2,
+        -:  358:	   typename _ForwardIterator, typename _Allocator>
+        -:  359:    inline _ForwardIterator
+        -:  360:    __uninitialized_move_copy(_InputIterator1 __first1,
+        -:  361:			      _InputIterator1 __last1,
+        -:  362:			      _InputIterator2 __first2,
+        -:  363:			      _InputIterator2 __last2,
+        -:  364:			      _ForwardIterator __result,
+        -:  365:			      _Allocator& __alloc)
+        -:  366:    {
+        -:  367:      _ForwardIterator __mid = std::__uninitialized_move_a(__first1, __last1,
+        -:  368:							   __result,
+        -:  369:							   __alloc);
+        -:  370:      __try
+        -:  371:	{
+        -:  372:	  return std::__uninitialized_copy_a(__first2, __last2, __mid, __alloc);
+        -:  373:	}
+        -:  374:      __catch(...)
+        -:  375:	{
+        -:  376:	  std::_Destroy(__result, __mid, __alloc);
+        -:  377:	  __throw_exception_again;
+        -:  378:	}
+        -:  379:    }
+        -:  380:  
+        -:  381:  // __uninitialized_fill_move
+        -:  382:  // Fills [result, mid) with x, and moves [first, last) into
+        -:  383:  //  [mid, mid + (last - first)).
+        -:  384:  template<typename _ForwardIterator, typename _Tp, typename _InputIterator,
+        -:  385:	   typename _Allocator>
+        -:  386:    inline _ForwardIterator
+        -:  387:    __uninitialized_fill_move(_ForwardIterator __result, _ForwardIterator __mid,
+        -:  388:			      const _Tp& __x, _InputIterator __first,
+        -:  389:			      _InputIterator __last, _Allocator& __alloc)
+        -:  390:    {
+        -:  391:      std::__uninitialized_fill_a(__result, __mid, __x, __alloc);
+        -:  392:      __try
+        -:  393:	{
+        -:  394:	  return std::__uninitialized_move_a(__first, __last, __mid, __alloc);
+        -:  395:	}
+        -:  396:      __catch(...)
+        -:  397:	{
+        -:  398:	  std::_Destroy(__result, __mid, __alloc);
+        -:  399:	  __throw_exception_again;
+        -:  400:	}
+        -:  401:    }
+        -:  402:
+        -:  403:  // __uninitialized_move_fill
+        -:  404:  // Moves [first1, last1) into [first2, first2 + (last1 - first1)), and
+        -:  405:  //  fills [first2 + (last1 - first1), last2) with x.
+        -:  406:  template<typename _InputIterator, typename _ForwardIterator, typename _Tp,
+        -:  407:	   typename _Allocator>
+        -:  408:    inline void
+        -:  409:    __uninitialized_move_fill(_InputIterator __first1, _InputIterator __last1,
+        -:  410:			      _ForwardIterator __first2,
+        -:  411:			      _ForwardIterator __last2, const _Tp& __x,
+        -:  412:			      _Allocator& __alloc)
+        -:  413:    {
+        -:  414:      _ForwardIterator __mid2 = std::__uninitialized_move_a(__first1, __last1,
+        -:  415:							    __first2,
+        -:  416:							    __alloc);
+        -:  417:      __try
+        -:  418:	{
+        -:  419:	  std::__uninitialized_fill_a(__mid2, __last2, __x, __alloc);
+        -:  420:	}
+        -:  421:      __catch(...)
+        -:  422:	{
+        -:  423:	  std::_Destroy(__first2, __mid2, __alloc);
+        -:  424:	  __throw_exception_again;
+        -:  425:	}
+        -:  426:    }
+        -:  427:
+        -:  428:#ifdef __GXX_EXPERIMENTAL_CXX0X__
+        -:  429:  template<typename _InputIterator, typename _Size,
+        -:  430:	   typename _ForwardIterator>
+        -:  431:    _ForwardIterator
+        -:  432:    __uninitialized_copy_n(_InputIterator __first, _Size __n,
+        -:  433:			   _ForwardIterator __result, input_iterator_tag)
+        -:  434:    {
+        -:  435:      _ForwardIterator __cur = __result;
+        -:  436:      __try
+        -:  437:	{
+        -:  438:	  for (; __n > 0; --__n, ++__first, ++__cur)
+        -:  439:	    ::new(static_cast<void*>(&*__cur)) typename
+        -:  440:		iterator_traits<_ForwardIterator>::value_type(*__first);
+        -:  441:	  return __cur;
+        -:  442:	}
+        -:  443:      __catch(...)
+        -:  444:	{
+        -:  445:	  std::_Destroy(__result, __cur);
+        -:  446:	  __throw_exception_again;
+        -:  447:	}
+        -:  448:    }
+        -:  449:
+        -:  450:  template<typename _RandomAccessIterator, typename _Size,
+        -:  451:	   typename _ForwardIterator>
+        -:  452:    inline _ForwardIterator
+        -:  453:    __uninitialized_copy_n(_RandomAccessIterator __first, _Size __n,
+        -:  454:			   _ForwardIterator __result,
+        -:  455:			   random_access_iterator_tag)
+        -:  456:    { return std::uninitialized_copy(__first, __first + __n, __result); }
+        -:  457:
+        -:  458:  /**
+        -:  459:   *  @brief Copies the range [first,first+n) into result.
+        -:  460:   *  @param  first  An input iterator.
+        -:  461:   *  @param  n      The number of elements to copy.
+        -:  462:   *  @param  result An output iterator.
+        -:  463:   *  @return  result + n
+        -:  464:   *
+        -:  465:   *  Like copy_n(), but does not require an initialized output range.
+        -:  466:  */
+        -:  467:  template<typename _InputIterator, typename _Size, typename _ForwardIterator>
+        -:  468:    inline _ForwardIterator
+        -:  469:    uninitialized_copy_n(_InputIterator __first, _Size __n,
+        -:  470:			 _ForwardIterator __result)
+        -:  471:    { return std::__uninitialized_copy_n(__first, __n, __result,
+        -:  472:					 std::__iterator_category(__first)); }
+        -:  473:#endif
+        -:  474:
+        -:  475:_GLIBCXX_END_NAMESPACE
+        -:  476:
+        -:  477:#endif /* _STL_UNINITIALIZED_H */

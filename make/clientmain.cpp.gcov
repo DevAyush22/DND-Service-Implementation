@@ -1,0 +1,97 @@
+        -:    0:Source:../src/clientmain.cpp
+        -:    0:Graph:clientmain.gcno
+        -:    0:Data:clientmain.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:/**********************************************************************************
+        -:    2:*	FILENAME     : clientmain.c
+        -:    3:*	DESCRIPTION  : Contains the main funtion of client that connects to the server and sends request as
+        -:    4:*			 per his requirements.
+        -:    5:*
+        -:    6:*	AUTHOR		 : GR_McCARTHY_CPP_06
+        -:    7:*	
+        -:    8:*	DATE		 : 30 JANUARY,2020				
+        -:    9:*	
+        -:   10:*   COPYRIGHT  @ALTRAN.COM
+        -:   11:*
+        -:   12:***********************************************************************************/
+        -:   13:
+        -:   14:/**********************************************************************************
+        -:   15:                       STANDARD HEADER FILES
+        -:   16:***********************************************************************************/
+        -:   17:#include <iostream>	//Input output purposes
+        -:   18:#include <cstdlib>	//for exit
+        -:   19:
+        -:   20:/**********************************************************************************
+        -:   21:                       INCLUSION HEADER FILES
+        -:   22:***********************************************************************************/
+        -:   23:#include <client.h>
+        -:   24:#include <logger.h>
+        -:   25:/*********************************************************************************
+        -:   26:                       MACROS
+        -:   27:**********************************************************************************/
+        -:   28:#define SUCCESS 0           // Returns 0 for Success
+        -:   29:#define FAILURE 1           // Returns 1 for Failure
+        -:   30:
+        -:   31:
+        -:   32:// Main Function
+        1:   33:int main(int argc, char* argv[]) {
+        -:   34:
+        1:   35:	log(3, WARNING, "COMMANDLINE ARGUMENTS","Invalid Number of Arguments");
+        -:   36:
+        -:   37:	
+        -:   38:    // Validate Number of Inputs
+        1:   39:    if (argc != 4) {
+    #####:   40:        cerr << "Invalid Arguments Passed!" << endl << "Usage: ./<Program_Name> <IP_Address> <Port_No> <Mobile_Number>" << endl;
+    #####:   41:		exit(0);
+        -:   42:    }
+        -:   43:	
+        -:   44:    // Validate IP Address
+        1:   45:    if (!IsValidIp(argv[1])) {
+        -:   46:
+    #####:   47:		log(3, DEBUG, "VALIDATING IP ADDRESS", "Invalid port number");
+        -:   48:
+    #####:   49:        cerr << "Invalid IP Address!" << endl;
+    #####:   50:		exit(1);
+        -:   51:    }
+        -:   52:	
+        -:   53:    // Validate Port number
+        1:   54:    if (!IsValidPortNum(argv[2])) {
+        -:   55:
+    #####:   56:		log(3, DEBUG, "VALIDATING PORT NUMBER", "Invalid port number");
+        -:   57:
+    #####:   58:        cerr << "Invalid Port Number!" << endl;
+    #####:   59:		exit(2);
+        -:   60:    }
+        -:   61:	
+        -:   62:    // Validate Mobile Number
+        1:   63:    if (!IsValidMobileNum(argv[3])) {
+        -:   64:
+    #####:   65:		log(3, DEBUG, "VALIDATING MOBILE NUMBER", "Invalid port number");
+        -:   66:
+    #####:   67:        cerr << "Invalid Mobile Number!" << endl;
+    #####:   68:		exit(3);
+        -:   69:    }
+        -:   70:	
+        -:   71:    // Creating object of Client class
+        -:   72:    // argv[1] = IP Address, argv[2] = Port Number, argv[3] = Mobile Number
+        1:   73:    Client c1(argv[1], argv[2], argv[3]);	
+        -:   74:	
+        -:   75:    // Creation of a Socket
+        1:   76:    c1.OpenSocket();
+        -:   77:	
+        -:   78:    // Connecting to the Server
+        1:   79:    c1.Connect();
+        -:   80:	
+        -:   81:    // Send the mobile number to server, Check if the number is present in the file
+        -:   82:    // If present, Display the menu
+        -:   83:    // If not, Register the number and then Display the menu
+        1:   84:    c1.IsMobNumRegistered(argv[3]);
+        -:   85:	
+        -:   86:    // Displaying the menu
+        1:   87:    c1.MainMenu();
+        -:   88:
+        1:   89:	log(3, INFO, "Exiting", "Main");
+        -:   90:
+        1:   91:    return SUCCESS;	
+        3:   92:}/*EOF*/

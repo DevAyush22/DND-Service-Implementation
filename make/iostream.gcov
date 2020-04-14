@@ -1,0 +1,81 @@
+        -:    0:Source:/usr/lib/gcc/x86_64-redhat-linux/4.4.7/../../../../include/c++/4.4.7/iostream
+        -:    0:Graph:servermain.gcno
+        -:    0:Data:servermain.gcda
+        -:    0:Runs:0
+        -:    0:Programs:0
+        -:    1:// Standard iostream objects -*- C++ -*-
+        -:    2:
+        -:    3:// Copyright (C) 1997, 1998, 1999, 2001, 2002, 2005, 2008, 2009
+        -:    4:// Free Software Foundation, Inc.
+        -:    5://
+        -:    6:// This file is part of the GNU ISO C++ Library.  This library is free
+        -:    7:// software; you can redistribute it and/or modify it under the
+        -:    8:// terms of the GNU General Public License as published by the
+        -:    9:// Free Software Foundation; either version 3, or (at your option)
+        -:   10:// any later version.
+        -:   11:
+        -:   12:// This library is distributed in the hope that it will be useful,
+        -:   13:// but WITHOUT ANY WARRANTY; without even the implied warranty of
+        -:   14:// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        -:   15:// GNU General Public License for more details.
+        -:   16:
+        -:   17:// Under Section 7 of GPL version 3, you are granted additional
+        -:   18:// permissions described in the GCC Runtime Library Exception, version
+        -:   19:// 3.1, as published by the Free Software Foundation.
+        -:   20:
+        -:   21:// You should have received a copy of the GNU General Public License and
+        -:   22:// a copy of the GCC Runtime Library Exception along with this program;
+        -:   23:// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+        -:   24:// <http://www.gnu.org/licenses/>.
+        -:   25:
+        -:   26:/** @file iostream
+        -:   27: *  This is a Standard C++ Library header. 
+        -:   28: */
+        -:   29:
+        -:   30://
+        -:   31:// ISO C++ 14882: 27.3  Standard iostream objects
+        -:   32://
+        -:   33:
+        -:   34:#ifndef _GLIBCXX_IOSTREAM
+        -:   35:#define _GLIBCXX_IOSTREAM 1
+        -:   36:
+        -:   37:#pragma GCC system_header
+        -:   38:
+        -:   39:#include <bits/c++config.h>
+        -:   40:#include <ostream>
+        -:   41:#include <istream>
+        -:   42:
+        -:   43:_GLIBCXX_BEGIN_NAMESPACE(std)
+        -:   44:
+        -:   45:  /**
+        -:   46:   *  @name Standard Stream Objects
+        -:   47:   *
+        -:   48:   *  The &lt;iostream&gt; header declares the eight <em>standard stream
+        -:   49:   *  objects</em>.  For other declarations, see
+        -:   50:   *  http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt11ch24.html
+        -:   51:   *  and the @link iosfwd I/O forward declarations @endlink
+        -:   52:   *
+        -:   53:   *  They are required by default to cooperate with the global C library's
+        -:   54:   *  @c FILE streams, and to be available during program startup and
+        -:   55:   *  termination.  For more information, see the HOWTO linked to above.
+        -:   56:  */
+        -:   57:  //@{
+        -:   58:  extern istream cin;		///< Linked to standard input
+        -:   59:  extern ostream cout;		///< Linked to standard output
+        -:   60:  extern ostream cerr;		///< Linked to standard error (unbuffered)
+        -:   61:  extern ostream clog;		///< Linked to standard error (buffered)
+        -:   62:
+        -:   63:#ifdef _GLIBCXX_USE_WCHAR_T
+        -:   64:  extern wistream wcin;		///< Linked to standard input
+        -:   65:  extern wostream wcout;	///< Linked to standard output
+        -:   66:  extern wostream wcerr;	///< Linked to standard error (unbuffered)
+        -:   67:  extern wostream wclog;	///< Linked to standard error (buffered)
+        -:   68:#endif
+        -:   69:  //@}
+        -:   70:
+        -:   71:  // For construction of filebuffers for cout, cin, cerr, clog et. al.
+        -:   72:  static ios_base::Init __ioinit;
+        -:   73:
+        -:   74:_GLIBCXX_END_NAMESPACE
+        -:   75:
+        -:   76:#endif /* _GLIBCXX_IOSTREAM */

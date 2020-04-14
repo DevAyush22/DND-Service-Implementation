@@ -1,0 +1,103 @@
+==22083== Memcheck, a memory error detector
+==22083== Copyright (C) 2002-2012, and GNU GPL'd, by Julian Seward et al.
+==22083== Using Valgrind-3.8.1 and LibVEX; rerun with -h for copyright info
+==22083== Command: ../bin/client 10.203.161.8 57319 9845303636
+==22083== Parent PID: 22082
+==22083== 
+--22083-- 
+--22083-- Valgrind options:
+--22083--    -v
+--22083--    --tool=memcheck
+--22083--    --leak-check=full
+--22083--    --show-reachable=yes
+--22083--    --log-file=valclient
+--22083-- Contents of /proc/version:
+--22083--   Linux version 2.6.32-696.3.1.el6.x86_64 (mockbuild@c1bl.rdu2.centos.org) (gcc version 4.4.7 20120313 (Red Hat 4.4.7-18) (GCC) ) #1 SMP Tue May 30 19:52:55 UTC 2017
+--22083-- Arch and hwcaps: AMD64, amd64-sse3-cx16
+--22083-- Page sizes: currently 4096, max supported 4096
+--22083-- Valgrind library directory: /usr/lib64/valgrind
+--22083-- Reading syms from /user/trainee78/DND_Project_Ayush/bin/client
+--22083-- Reading syms from /lib64/ld-2.12.so
+--22083-- Reading syms from /usr/lib64/valgrind/memcheck-amd64-linux
+--22083--    object doesn't have a dynamic symbol table
+--22083-- Scheduler: using generic scheduler lock implementation.
+--22083-- Reading suppressions file: /usr/lib64/valgrind/default.supp
+==22083== embedded gdbserver: reading from /tmp/vgdb-pipe-from-vgdb-to-22083-by-trainee78-on-tsus007.gur.aricent.com
+==22083== embedded gdbserver: writing to   /tmp/vgdb-pipe-to-vgdb-from-22083-by-trainee78-on-tsus007.gur.aricent.com
+==22083== embedded gdbserver: shared mem   /tmp/vgdb-pipe-shared-mem-vgdb-22083-by-trainee78-on-tsus007.gur.aricent.com
+==22083== 
+==22083== TO CONTROL THIS PROCESS USING vgdb (which you probably
+==22083== don't want to do, unless you know exactly what you're doing,
+==22083== or are doing some strange experiment):
+==22083==   /usr/lib64/valgrind/../../bin/vgdb --pid=22083 ...command...
+==22083== 
+==22083== TO DEBUG THIS PROCESS USING GDB: start GDB like this
+==22083==   /path/to/gdb ../bin/client
+==22083== and then give GDB the following command
+==22083==   target remote | /usr/lib64/valgrind/../../bin/vgdb --pid=22083
+==22083== --pid is optional if only one valgrind process is running
+==22083== 
+--22083-- REDIR: 0x4017d10 (strlen) redirected to 0x38049551 (vgPlain_amd64_linux_REDIR_FOR_strlen)
+--22083-- Reading syms from /usr/lib64/valgrind/vgpreload_core-amd64-linux.so
+--22083-- Reading syms from /usr/lib64/valgrind/vgpreload_memcheck-amd64-linux.so
+--22083-- REDIR: 0x4017b20 (index) redirected to 0x4c29c30 (index)
+--22083-- REDIR: 0x4017ba0 (strcmp) redirected to 0x4c2a570 (strcmp)
+--22083-- Reading syms from /usr/lib64/libstdc++.so.6.0.13
+--22083--    object doesn't have a symbol table
+--22083-- Reading syms from /lib64/libm-2.12.so
+--22083-- Reading syms from /lib64/libgcc_s-4.4.7-20120601.so.1
+--22083--    object doesn't have a symbol table
+--22083-- Reading syms from /lib64/libc-2.12.so
+--22083-- REDIR: 0x5654d10 (strcasecmp) redirected to 0x4a2355c (_vgnU_ifunc_wrapper)
+--22083-- REDIR: 0x5656fd0 (strncasecmp) redirected to 0x4a2355c (_vgnU_ifunc_wrapper)
+--22083-- REDIR: 0x5652c80 (__GI_strrchr) redirected to 0x4c29ab0 (__GI_strrchr)
+--22083-- REDIR: 0x56511a0 (__GI_strlen) redirected to 0x4c29fb0 (__GI_strlen)
+--22083-- REDIR: 0x564f720 (strcmp) redirected to 0x4a2355c (_vgnU_ifunc_wrapper)
+--22083-- REDIR: 0x56f8670 (__strcmp_sse42) redirected to 0x4c2a4d0 (strcmp)
+--22083-- REDIR: 0x5651160 (strlen) redirected to 0x4a2355c (_vgnU_ifunc_wrapper)
+--22083-- REDIR: 0x5703940 (__strlen_sse42) redirected to 0x4c29f90 (strlen)
+--22083-- REDIR: 0x4eed0b0 (operator new(unsigned long)) redirected to 0x4c2957a (operator new(unsigned long))
+--22083-- REDIR: 0x56596b0 (memcpy) redirected to 0x4c2ab60 (memcpy)
+--22083-- REDIR: 0xffffffffff600400 (???) redirected to 0x3804953d (vgPlain_amd64_linux_REDIR_FOR_vtime)
+--22083-- REDIR: 0x564b8b0 (free) redirected to 0x4c283a9 (free)
+--22083-- REDIR: 0x564aa50 (malloc) redirected to 0x4c289ac (malloc)
+--22083-- REDIR: 0x5650be0 (__GI_strcpy) redirected to 0x4c2a0a0 (__GI_strcpy)
+--22083-- REDIR: 0x564f760 (__GI_strcmp) redirected to 0x4c2a520 (__GI_strcmp)
+--22083-- REDIR: 0x565aae0 (__GI___rawmemchr) redirected to 0x4c2c000 (__GI___rawmemchr)
+--22083-- REDIR: 0x565ab30 (strchrnul) redirected to 0x4c2bfb0 (strchrnul)
+--22083-- REDIR: 0x5651280 (strnlen) redirected to 0x4c29f30 (strnlen)
+--22083-- REDIR: 0x4eeb2f0 (operator delete(void*)) redirected to 0x4c27f8f (operator delete(void*))
+--22083-- REDIR: 0x5653390 (memchr) redirected to 0x4c2a610 (memchr)
+--22083-- REDIR: 0x56539e0 (memset) redirected to 0x4a2355c (_vgnU_ifunc_wrapper)
+--22083-- REDIR: 0x5653a20 (__GI_memset) redirected to 0x4c2ba50 (memset)
+--22083-- REDIR: 0x56513d0 (__GI_strncmp) redirected to 0x4c2a470 (__GI_strncmp)
+--22083-- REDIR: 0x5654bc0 (__GI_stpcpy) redirected to 0x4c2b7e0 (__GI_stpcpy)
+--22083-- REDIR: 0x5654540 (mempcpy) redirected to 0x4c2c020 (mempcpy)
+==22083== 
+==22083== HEAP SUMMARY:
+==22083==     in use at exit: 35 bytes in 1 blocks
+==22083==   total heap usage: 166 allocs, 165 frees, 6,994 bytes allocated
+==22083== 
+==22083== Searching for pointers to 1 not-freed blocks
+==22083== Checked 179,592 bytes
+==22083== 
+==22083== 35 bytes in 1 blocks are possibly lost in loss record 1 of 1
+==22083==    at 0x4C295FC: operator new(unsigned long) (vg_replace_malloc.c:298)
+==22083==    by 0x4ECC3C8: std::string::_Rep::_S_create(unsigned long, unsigned long, std::allocator<char> const&) (in /usr/lib64/libstdc++.so.6.0.13)
+==22083==    by 0x4ECCDE4: ??? (in /usr/lib64/libstdc++.so.6.0.13)
+==22083==    by 0x4ECCF32: std::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string(char const*, std::allocator<char> const&) (in /usr/lib64/libstdc++.so.6.0.13)
+==22083==    by 0x404802: main (clientmain.cpp:73)
+==22083== 
+==22083== LEAK SUMMARY:
+==22083==    definitely lost: 0 bytes in 0 blocks
+==22083==    indirectly lost: 0 bytes in 0 blocks
+==22083==      possibly lost: 35 bytes in 1 blocks
+==22083==    still reachable: 0 bytes in 0 blocks
+==22083==         suppressed: 0 bytes in 0 blocks
+==22083== 
+==22083== ERROR SUMMARY: 1 errors from 1 contexts (suppressed: 6 from 6)
+--22083-- 
+--22083-- used_suppression:      4 U1004-ARM-_dl_relocate_object
+--22083-- used_suppression:      2 glibc-2.5.x-on-SUSE-10.2-(PPC)-2a
+==22083== 
+==22083== ERROR SUMMARY: 1 errors from 1 contexts (suppressed: 6 from 6)

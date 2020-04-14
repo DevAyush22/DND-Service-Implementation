@@ -1,0 +1,87 @@
+==22078== Memcheck, a memory error detector
+==22078== Copyright (C) 2002-2012, and GNU GPL'd, by Julian Seward et al.
+==22078== Using Valgrind-3.8.1 and LibVEX; rerun with -h for copyright info
+==22078== Command: ../bin/server
+==22078== Parent PID: 22077
+==22078== 
+--22078-- 
+--22078-- Valgrind options:
+--22078--    -v
+--22078--    --tool=memcheck
+--22078--    --leak-check=full
+--22078--    --show-reachable=yes
+--22078--    --log-file=valserver
+--22078-- Contents of /proc/version:
+--22078--   Linux version 2.6.32-696.3.1.el6.x86_64 (mockbuild@c1bl.rdu2.centos.org) (gcc version 4.4.7 20120313 (Red Hat 4.4.7-18) (GCC) ) #1 SMP Tue May 30 19:52:55 UTC 2017
+--22078-- Arch and hwcaps: AMD64, amd64-sse3-cx16
+--22078-- Page sizes: currently 4096, max supported 4096
+--22078-- Valgrind library directory: /usr/lib64/valgrind
+--22078-- Reading syms from /user/trainee78/DND_Project_Ayush/bin/server
+--22078-- Reading syms from /lib64/ld-2.12.so
+--22078-- Reading syms from /usr/lib64/valgrind/memcheck-amd64-linux
+--22078--    object doesn't have a dynamic symbol table
+--22078-- Scheduler: using generic scheduler lock implementation.
+--22078-- Reading suppressions file: /usr/lib64/valgrind/default.supp
+==22078== embedded gdbserver: reading from /tmp/vgdb-pipe-from-vgdb-to-22078-by-trainee78-on-tsus007.gur.aricent.com
+==22078== embedded gdbserver: writing to   /tmp/vgdb-pipe-to-vgdb-from-22078-by-trainee78-on-tsus007.gur.aricent.com
+==22078== embedded gdbserver: shared mem   /tmp/vgdb-pipe-shared-mem-vgdb-22078-by-trainee78-on-tsus007.gur.aricent.com
+==22078== 
+==22078== TO CONTROL THIS PROCESS USING vgdb (which you probably
+==22078== don't want to do, unless you know exactly what you're doing,
+==22078== or are doing some strange experiment):
+==22078==   /usr/lib64/valgrind/../../bin/vgdb --pid=22078 ...command...
+==22078== 
+==22078== TO DEBUG THIS PROCESS USING GDB: start GDB like this
+==22078==   /path/to/gdb ../bin/server
+==22078== and then give GDB the following command
+==22078==   target remote | /usr/lib64/valgrind/../../bin/vgdb --pid=22078
+==22078== --pid is optional if only one valgrind process is running
+==22078== 
+--22078-- REDIR: 0x4017d10 (strlen) redirected to 0x38049551 (vgPlain_amd64_linux_REDIR_FOR_strlen)
+--22078-- Reading syms from /usr/lib64/valgrind/vgpreload_core-amd64-linux.so
+--22078-- Reading syms from /usr/lib64/valgrind/vgpreload_memcheck-amd64-linux.so
+--22078-- REDIR: 0x4017b20 (index) redirected to 0x4c29c30 (index)
+--22078-- REDIR: 0x4017ba0 (strcmp) redirected to 0x4c2a570 (strcmp)
+--22078-- Reading syms from /usr/lib64/libstdc++.so.6.0.13
+--22078--    object doesn't have a symbol table
+--22078-- Reading syms from /lib64/libm-2.12.so
+--22078-- Reading syms from /lib64/libgcc_s-4.4.7-20120601.so.1
+--22078--    object doesn't have a symbol table
+--22078-- Reading syms from /lib64/libc-2.12.so
+--22078-- REDIR: 0x5654d10 (strcasecmp) redirected to 0x4a2355c (_vgnU_ifunc_wrapper)
+--22078-- REDIR: 0x5656fd0 (strncasecmp) redirected to 0x4a2355c (_vgnU_ifunc_wrapper)
+--22078-- REDIR: 0x5652c80 (__GI_strrchr) redirected to 0x4c29ab0 (__GI_strrchr)
+--22078-- REDIR: 0x56511a0 (__GI_strlen) redirected to 0x4c29fb0 (__GI_strlen)
+--22078-- REDIR: 0x564f720 (strcmp) redirected to 0x4a2355c (_vgnU_ifunc_wrapper)
+--22078-- REDIR: 0x56f8670 (__strcmp_sse42) redirected to 0x4c2a4d0 (strcmp)
+--22078-- REDIR: 0x5651160 (strlen) redirected to 0x4a2355c (_vgnU_ifunc_wrapper)
+--22078-- REDIR: 0x5703940 (__strlen_sse42) redirected to 0x4c29f90 (strlen)
+--22078-- REDIR: 0x4eed0b0 (operator new(unsigned long)) redirected to 0x4c2957a (operator new(unsigned long))
+--22078-- REDIR: 0x56596b0 (memcpy) redirected to 0x4c2ab60 (memcpy)
+--22078-- REDIR: 0xffffffffff600400 (???) redirected to 0x3804953d (vgPlain_amd64_linux_REDIR_FOR_vtime)
+--22078-- REDIR: 0x564b8b0 (free) redirected to 0x4c283a9 (free)
+--22078-- REDIR: 0x564aa50 (malloc) redirected to 0x4c289ac (malloc)
+--22078-- REDIR: 0x5650be0 (__GI_strcpy) redirected to 0x4c2a0a0 (__GI_strcpy)
+--22078-- REDIR: 0x564f760 (__GI_strcmp) redirected to 0x4c2a520 (__GI_strcmp)
+--22078-- REDIR: 0x565aae0 (__GI___rawmemchr) redirected to 0x4c2c000 (__GI___rawmemchr)
+--22078-- REDIR: 0x565ab30 (strchrnul) redirected to 0x4c2bfb0 (strchrnul)
+--22078-- REDIR: 0x5651280 (strnlen) redirected to 0x4c29f30 (strnlen)
+--22078-- REDIR: 0x4eeb2f0 (operator delete(void*)) redirected to 0x4c27f8f (operator delete(void*))
+--22078-- REDIR: 0x56539e0 (memset) redirected to 0x4a2355c (_vgnU_ifunc_wrapper)
+--22078-- REDIR: 0x5653a20 (__GI_memset) redirected to 0x4c2ba50 (memset)
+--22078-- REDIR: 0x56513d0 (__GI_strncmp) redirected to 0x4c2a470 (__GI_strncmp)
+--22078-- REDIR: 0x5654bc0 (__GI_stpcpy) redirected to 0x4c2b7e0 (__GI_stpcpy)
+--22078-- REDIR: 0x5654540 (mempcpy) redirected to 0x4c2c020 (mempcpy)
+==22078== 
+==22078== HEAP SUMMARY:
+==22078==     in use at exit: 0 bytes in 0 blocks
+==22078==   total heap usage: 47 allocs, 47 frees, 3,352 bytes allocated
+==22078== 
+==22078== All heap blocks were freed -- no leaks are possible
+==22078== 
+==22078== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 6 from 6)
+--22078-- 
+--22078-- used_suppression:      4 U1004-ARM-_dl_relocate_object
+--22078-- used_suppression:      2 glibc-2.5.x-on-SUSE-10.2-(PPC)-2a
+==22078== 
+==22078== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 6 from 6)

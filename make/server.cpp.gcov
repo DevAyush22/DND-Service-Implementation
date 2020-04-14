@@ -1,0 +1,821 @@
+        -:    0:Source:../src/server.cpp
+        -:    0:Graph:server.gcno
+        -:    0:Data:server.gcda
+        -:    0:Runs:0
+        -:    0:Programs:0
+        -:    1:/**********************************************************************************
+        -:    2:*       FILENAME    : server.cpp
+        -:    3:*       DESCRIPTION : File contains definitions of the of server that receives message from clients
+        -:    4:*			  		  as per their request
+        -:    5:*
+        -:    6:*	AUTHOR			: GR_McCARTHY_CPP_06
+        -:    7:*	
+        -:    8:*	DATE		 	: 30 JANUARY,2020				
+        -:    9:*	
+        -:   10:*   COPYRIGHT  @ALTRAN.COM
+        -:   11:*
+        -:   12:***********************************************************************************/
+        -:   13:
+        -:   14:/**********************************************************************************
+        -:   15:                       STANDARD HEADER FILES
+        -:   16:***********************************************************************************/
+        -:   17:#include <iostream>
+        -:   18:#include <vector>
+        -:   19:#include <sstream>
+        -:   20:#include <unistd.h>
+        -:   21:#include <stdio.h>
+        -:   22:#include <stdlib.h>
+        -:   23:#include <errno.h>
+        -:   24:#include <string.h>
+        -:   25:#include <sys/types.h>
+        -:   26:#include <sys/stat.h>
+        -:   27:#include <sys/socket.h>
+        -:   28:#include <netinet/in.h>
+        -:   29:#include <arpa/inet.h>
+        -:   30:#include <fcntl.h>
+        -:   31:
+        -:   32:/**********************************************************************************
+        -:   33:                       INCLUSION HEADER FILES
+        -:   34:***********************************************************************************/
+        -:   35:
+        -:   36:#include <server.h>
+        -:   37:#include <logger.h>
+        -:   38:
+        -:   39:/**********************************************************************************
+        -:   40:                         		MACROS
+        -:   41:***********************************************************************************/
+        -:   42:
+        -:   43:#define BLOCKSIZE 512		// Block Size
+        -:   44:#define BUFFERSIZE 1024		// Max Buffer Size
+        -:   45:#define SERV_PORT 57322		// Port Number
+        -:   46:#define LISTENQ 10			// Maximum Number of Client Connections
+        -:   47:#define DELIM ':'			// Delimiter for Tokenizing Client Data
+        -:   48:
+        -:   49:#define SUCCESS 0           // Returns 0 for Success
+        -:   50:#define FAILURE 1           // Returns 1 for Failure
+        -:   51:
+        -:   52:
+        -:   53:/***********************************************************************************
+        -:   54:							CONSTRUCTOR
+        -:   55:************************************************************************************/
+        -:   56:Server::Server() {
+        -:   57:
+        -:   58:	logfile.open("../dat/serverlog.txt", ios::out|ios::app);
+        -:   59:
+        -:   60:	log(3, INFO , "Entering", "Default Constructor");
+        -:   61:	sd = 0;
+        -:   62:	cd = 0;
+        -:   63:	fd = 0;
+        -:   64:	mobNumber = "";
+        -:   65:	databuf[0] = '\0';
+        -:   66:	clientIpAddress[0] = '\0';
+        -:   67:	
+        -:   68:	// Populating Own address structure to bind it to the Socket
+        -:   69:	memset(&serverAddress, 0, sizeof(serverAddress));
+        -:   70:	serverAddress.sin_family = AF_INET;
+        -:   71:	serverAddress.sin_port = htons(SERV_PORT);	// PORT NO
+        -:   72:	serverAddress.sin_addr.s_addr = htonl(INADDR_ANY);	// IP ADDRESS
+        -:   73:
+        -:   74:	log(3, INFO , "Exiting", "Default Constructor");
+        -:   75:
+        -:   76:}
+        -:   77:
+        -:   78:
+        -:   79:/********************************************************************************************************************************
+        -:   80:*	FUNCTION NAME	: OpenSocket() 
+        -:   81:*       
+        -:   82:*	DESCRIPTION     : Creates an endpoint for communication and returns a non-zero file descriptor on successful 
+        -:   83:*  			          socket creation that refers to the endpoint.
+        -:   84:*				  
+        -:   85:*	PARAMETER	    : void
+        -:   86:*	
+        -:   87:*	RETURN          : int
+        -:   88:********************************************************************************************************************************/
+        -:   89:int Server::OpenSocket() {
+        -:   90:
+        -:   91:	log(3, INFO, "Entering", "OpenSocket");
+        -:   92:
+        -:   93:
+        -:   94:	sd = socket(AF_INET, SOCK_STREAM, 0);
+        -:   95:	if (sd < 0) {
+        -:   96:
+        -:   97:		perror("SOCKET OPEN FAILURE");
+        -:   98:
+        -:   99:		log(3, DEBUG, "SOCKET CREATION", "Socket Error");
+        -:  100:
+        -:  101:		exit(0);
+        -:  102:	}
+        -:  103:	
+        -:  104:	log(3, INFO, "Exiting", "OpenSocket");
+        -:  105:
+        -:  106:	
+        -:  107:	return SUCCESS;
+        -:  108:}
+        -:  109:
+        -:  110:
+        -:  111:
+        -:  112:/********************************************************************************************************************************
+        -:  113:*	FUNCTION NAME	: BindData() 
+        -:  114:*       
+        -:  115:*	DESCRIPTION     : Bins the socket to the address and port number specified in the address
+        -:  116:*		        				  
+        -:  117:*	PARAMETER	: void
+        -:  118:*	
+        -:  119:*	RETURN       	: int
+        -:  120:********************************************************************************************************************************/
+        -:  121:int Server::BindData() {
+        -:  122:
+        -:  123:	log(3, INFO, "Entering", "BindData");
+        -:  124:
+        -:  125:	
+        -:  126:	int status = 0;
+        -:  127:	
+        -:  128:	// Now Binding
+        -:  129:	status = bind(sd, (const struct sockaddr*) &serverAddress, sizeof(serverAddress));
+        -:  130:	if (status < 0) {
+        -:  131:		perror("BIND FAILURE");
+        -:  132:		close(sd);
+        -:  133:
+        -:  134:		log(3, DEBUG, "BINDING SOCKET", "Bind Error");
+        -:  135:
+        -:  136:		exit(0);
+        -:  137:	}
+        -:  138:
+        -:  139:	log(3, INFO, "Exiting", "BindData");
+        -:  140:
+        -:  141:
+        -:  142:	return SUCCESS;
+        -:  143:}
+        -:  144:
+        -:  145:
+        -:  146:/********************************************************************************************************************************
+        -:  147:*	FUNCTION NAME	: Listen() 
+        -:  148:*       
+        -:  149:*	DESCRIPTION     : Defines the maximum length to which the queue of pending connections for sockfd
+        -:  150:*				 	  may grow and acceps the connections as per the queue
+        -:  151:*		         			  
+        -:  152:*	PARAMETER	: void
+        -:  153:*	
+        -:  154:*	RETURN 	        : int
+        -:  155:********************************************************************************************************************************/
+        -:  156:int Server::Listen() {
+        -:  157:
+        -:  158:	log(3, INFO, "Entering", "Listen");
+        -:  159:
+        -:  160:	int status = 0;
+        -:  161:	
+        -:  162:	cout << "Server Running... I am waiting for Connections..." << endl;
+        -:  163:	
+        -:  164:	// Listen
+        -:  165:	status = listen(sd, LISTENQ);
+        -:  166:	if (status < 0) {
+        -:  167:		perror("LISTEN FAILURE");
+        -:  168:		close(sd);
+        -:  169:
+        -:  170:		log(3, DEBUG, "LISTENING SOCKET", "Listen Error");
+        -:  171:
+        -:  172:		exit(0);
+        -:  173:	}
+        -:  174:	
+        -:  175:	// Now waiting for Accepting Connection Request
+        -:  176:	Accept();
+        -:  177:
+        -:  178:	log(3, INFO, "Exiting", "Listen");
+        -:  179:	
+        -:  180:	return SUCCESS;
+        -:  181:}
+        -:  182:
+        -:  183:
+        -:  184:/********************************************************************************************************************************
+        -:  185:*	FUNCTION NAME	: Accept()
+        -:  186:*       
+        -:  187:*	DESCRIPTION     : Extracts the first connection on the queue of pending connections, create a new socket
+        -:  188:*					  with the same socket type protocol and address family as the specified socket
+        -:  189:*				      
+        -:  190:*		         			  
+        -:  191:*	PARAMETER	: void
+        -:  192:*	
+        -:  193:*	RETURN 	        : int
+        -:  194:********************************************************************************************************************************/
+        -:  195:int Server::Accept() {
+        -:  196:
+        -:  197:	log(3, INFO, "Entering", "Accept");
+        -:  198:
+        -:  199:	
+        -:  200:	memset(&clientAddress, 0, sizeof(clientAddress));
+        -:  201:	
+        -:  202:	socklen_t clientLength = sizeof(clientAddress);
+        -:  203:
+        -:  204:	// Accept Connection
+        -:  205:	cd = accept(sd, (struct sockaddr*) &clientAddress, &clientLength);
+        -:  206:	if (cd < 0) {
+        -:  207:		perror("ACCEPT FAILURE");
+        -:  208:		close(sd);
+        -:  209:
+        -:  210:		log(3, DEBUG, "ACCEPTING SOCKET", "Accept Error");
+        -:  211:
+        -:  212:		exit(0);
+        -:  213:	}
+        -:  214:	
+        -:  215:	// Printing the IP Address of the Client
+        -:  216:	cout << endl << "Request from - Client IP Address: " << inet_ntop(AF_INET, &clientAddress.sin_addr, clientIpAddress, sizeof(clientIpAddress)) << endl;	
+        -:  217:	
+        -:  218:	// Read Data sent by Client
+        -:  219:	ReadData();
+        -:  220:
+        -:  221:	log(3, INFO, "Exiting", "Accept");
+        -:  222:
+        -:  223:	
+        -:  224:	return SUCCESS;
+        -:  225:}
+        -:  226:
+        -:  227:
+        -:  228:/********************************************************************************************************************************
+        -:  229:*	FUNCTION NAME	: ReadData() 
+        -:  230:*       
+        -:  231:*	DESCRIPTION     : Receives message from another socket using receive() function which contains file descriptor,
+        -:  232:*				  a buffer in which the message that is sent is stored, the length of the buffer, a flag.  
+        -:  233:*	
+        -:  234:*	PARAMETER		: void
+        -:  235:*	
+        -:  236:*	RETURN 			: int
+        -:  237:********************************************************************************************************************************/
+        -:  238:int Server::ReadData() {
+        -:  239:
+        -:  240:	log(3, INFO, "Entering", "ReadData");
+        -:  241:
+        -:  242:
+        -:  243:	int count = 0;
+        -:  244:	
+        -:  245:	while(1) {
+        -:  246:
+        -:  247:		// Receive Data from Client
+        -:  248:		count = recv(cd, databuf, BUFFERSIZE, 0);
+        -:  249:		if (count <= 0) {
+        -:  250:			perror("DATA NOT RECEIVED FROM CLIENT");
+        -:  251:			close(cd);
+        -:  252:			close(sd);
+        -:  253:
+        -:  254:			log(3, DEBUG, "READING DATA", "Read Error");
+        -:  255:
+        -:  256:			exit(0);
+        -:  257:		}
+        -:  258:	
+        -:  259:		databuf[count] = '\0';
+        -:  260:	
+        -:  261:		cout << "Data Received from Client: " << databuf << endl;
+        -:  262:	
+        -:  263:		if (strcmp(databuf, "Exit") == 0) {
+        -:  264:			break;
+        -:  265:		}
+        -:  266:		
+        -:  267:		// Tokenize Data sent by Client
+        -:  268:		TokenizeData(databuf);		
+        -:  269:	}
+        -:  270:	
+        -:  271:	// Listen for New Connections
+        -:  272:	Listen();
+        -:  273:
+        -:  274:	
+        -:  275:	log(3, INFO, "Exiting", "ReadData");
+        -:  276:
+        -:  277:	
+        -:  278:	return SUCCESS;
+        -:  279:}
+        -:  280:
+        -:  281:
+        -:  282:/********************************************************************************************************************************
+        -:  283:*	FUNCTION NAME	: SendData() 
+        -:  284:*       
+        -:  285:*	DESCRIPTION     : Transmits message to another socket using send() function which contains file descriptor,
+        -:  286:*					  a buffer containing the message that is to be sent, the length of the buffer, a flag.				   
+        -:  287:*	
+        -:  288:*	PARAMETER		: void
+        -:  289:*	
+        -:  290:*	RETURN 			: int
+        -:  291:********************************************************************************************************************************/
+        -:  292:int Server::SendData(char* data) {
+        -:  293:
+        -:  294:	log(3, INFO, "Entering", "SendData");
+        -:  295:
+        -:  296:	int count = 0, len = 0;
+        -:  297:	len = strlen(data);
+        -:  298:
+        -:  299:	count = send(cd, data, len, 0);
+        -:  300:	if (count < 0) {
+        -:  301:		perror("DATA NOT SENT TO CLIENT");
+        -:  302:		close(cd);
+        -:  303:		close(sd);
+        -:  304:	
+        -:  305:		log(3, DEBUG, "SENDING SOCKET", "Send Error");
+        -:  306:
+        -:  307:		exit(0);
+        -:  308:	}
+        -:  309:	
+        -:  310:	cout << "Data: '" << data << "' is sent to Client successfully!" << endl << endl;
+        -:  311:
+        -:  312:	log(3, INFO, "Exiting", "SendData");
+        -:  313:
+        -:  314:	return SUCCESS;
+        -:  315:}	
+        -:  316:
+        -:  317:
+        -:  318:/********************************************************************************************************************************
+        -:  319:*	FUNCTION NAME	: TokenizeData() 
+        -:  320:*       
+        -:  321:*	DESCRIPTION     : Token				   
+        -:  322:*	
+        -:  323:*	PARAMETER		: void
+        -:  324:*	
+        -:  325:*	RETURN 			: int
+        -:  326:********************************************************************************************************************************/
+        -:  327:int Server::TokenizeData(char* data) {	
+        -:  328:
+        -:  329:	log(3, INFO, "Entering", "Tokenizedata");
+        -:  330:	
+        -:  331:	string str = data;
+        -:  332:	
+        -:  333:	// Split the string into tokens
+        -:  334:	vector<string> tokens;
+        -:  335:	
+        -:  336:	stringstream ss(str);
+        -:  337:	string intermediate;
+        -:  338:	
+        -:  339:	while(getline(ss, intermediate, DELIM)) {
+        -:  340:		tokens.push_back(intermediate);
+        -:  341:	}
+        -:  342:	
+        -:  343:	// Store Case (tokens[1])
+        -:  344:	int choice = atoi(tokens[1].c_str());
+        -:  345:	
+        -:  346:	// Store Mobile Number
+        -:  347:	mobNumber = tokens[0];
+        -:  348:	
+        -:  349:	switch(choice) {
+        -:  350:
+        -:  351:		case 1	: 	// Check if Mobile Number is Registered
+        -:  352:					IsNumberRegistered();
+        -:  353:					break;
+        -:  354:					
+        -:  355:		case 2	:	// Check if Service is Activated for Mobile Number
+        -:  356:					IsServiceActivated();
+        -:  357:					break;
+        -:  358:					
+        -:  359:		case 3	:	// Process Activation Request for Global Service
+        -:  360:					ProcessGlobalActivationRequest();
+        -:  361:					break;
+        -:  362:
+        -:  363:		case 4	:	// Process Activation Request for Selective Service 
+        -:  364:					ProcessSelectiveActivationRequest(tokens[2]);
+        -:  365:					break;
+        -:  366:					
+        -:  367:		case 5	:	// Process Deactivation Request for Mobile Number
+        -:  368:					ProcessDeactivationRequest();
+        -:  369:					break;
+        -:  370:					
+        -:  371:		case 6	:	// Process Update Service Request for Mobile Number
+        -:  372:					ProcessUpdateRequest();
+        -:  373:					break;
+        -:  374:					
+        -:  375:		case 7	:	// Process Call Request
+        -:  376:					//ProcessCallRequest();
+        -:  377:					break;					
+        -:  378:	
+        -:  379:		default	:	cout << "Invalid Choice!" << endl;
+        -:  380:					break;				
+        -:  381:	}
+        -:  382:
+        -:  383:	log(3, INFO, "Exiting", "TokenizeData");
+        -:  384:
+        -:  385:	return SUCCESS;
+        -:  386:}
+        -:  387:
+        -:  388:
+        -:  389:/********************************************************************************************************************************
+        -:  390:*	FUNCTION NAME	:IsNumberRegistered() 
+        -:  391:*       
+        -:  392:*	DESCRIPTION     :Check if Mobile Number is Registered or Not
+        -:  393:*				  
+        -:  394:*	PARAMETER       : void
+        -:  395:*	
+        -:  396:*	RETURN          : int
+        -:  397:********************************************************************************************************************************/
+        -:  398:int Server::IsNumberRegistered() {
+        -:  399:
+        -:  400:	log(3, INFO, "Entering", "IsNumberRegistered");
+        -:  401:
+        -:  402:	int status = 0, isRegistered = 1;
+        -:  403:	string msg;
+        -:  404:	char buffer[BUFFERSIZE];
+        -:  405:    string file = "../dat/RegisteredClients.txt";
+        -:  406:    const char* clientFile = file.c_str();
+        -:  407:    
+        -:  408:	// Opening the File
+        -:  409:	fd = open(clientFile, O_RDONLY);
+        -:  410:	if (fd < 0) {
+        -:  411:		perror("FILE OPENING FAILED!") ;
+        -:  412:
+        -:  413:		log(3, DEBUG, "OPENING FILE", "Open File Error");
+        -:  414:
+        -:  415:		exit(0);
+        -:  416:	}
+        -:  417:	
+        -:  418:	// Read the file in Blocks of BLOCKSIZE 
+        -:  419:	status = read(fd, buffer, BLOCKSIZE);
+        -:  420:	if (status < 0) {
+        -:  421:		perror("FILE READ FAILURE!");
+        -:  422:
+        -:  423:		log(3, DEBUG, "READ SOCKET", "Read Error");
+        -:  424:
+        -:  425:		exit(0);
+        -:  426:	}	
+        -:  427:
+        -:  428:	stringstream ss(buffer);
+        -:  429:	string mnumber;
+        -:  430:	
+        -:  431:	// Compare Mobile Number with each Number in File
+        -:  432:	while (getline(ss, mnumber)) {
+        -:  433:		
+        -:  434:		if(mobNumber == mnumber) {
+        -:  435:			isRegistered = 0;
+        -:  436:		}
+        -:  437:	}
+        -:  438:	
+        -:  439:	if (isRegistered == 0) {
+        -:  440:		
+        -:  441:		// If Number is Registered
+        -:  442:		msg = "Mobile Number is already Registered!";
+        -:  443:		SendData(const_cast<char*>(msg.c_str()));
+        -:  444:	
+        -:  445:	} else if (isRegistered == 1) {
+        -:  446:
+        -:  447:		mobNumber.append("\n");
+        -:  448:	
+        -:  449:		// If Number is Not Registered
+        -:  450:		string file = "../dat/RegisteredClients.txt";
+        -:  451:		WriteFile(const_cast<char*>(mobNumber.c_str()), const_cast<char*>(file.c_str()));
+        -:  452:		msg = "Mobile Number is successfully Registered into Database!";
+        -:  453:		SendData(const_cast<char*>(msg.c_str()));
+        -:  454:	}
+        -:  455:	
+        -:  456:	// Close File Descriptor
+        -:  457:	close(fd);
+        -:  458:
+        -:  459:	log(3, INFO, "Exiting", "IsNumberRegistered");
+        -:  460:
+        -:  461:	return SUCCESS;
+        -:  462:}
+        -:  463:
+        -:  464:
+        -:  465:/********************************************************************************************************************************
+        -:  466:*	FUNCTION NAME	:IsServiceActivated() 
+        -:  467:      
+        -:  468:*	DESCRIPTION     :Check if Mobile Number is Registered or Not
+        -:  469:*				  
+        -:  470:*	PARAMETER       : void
+        -:  471:*	
+        -:  472:*	RETURN          : int
+        -:  473:********************************************************************************************************************************/
+        -:  474:int Server::IsServiceActivated() {
+        -:  475:
+        -:  476:	log(3, INFO, "Entering", "IsServiceActivated");
+        -:  477:
+        -:  478:	int status = 0, isActivated = 1;
+        -:  479:	string msg;
+        -:  480:	char buffer[BUFFERSIZE] = {0};
+        -:  481:	string file = "../dat/ActivatedClients.txt";
+        -:  482:    const char* clientFile = file.c_str();
+        -:  483:	
+        -:  484:	// Opening the File
+        -:  485:	fd = open(clientFile, O_RDONLY);
+        -:  486:	if (fd < 0) {
+        -:  487:		perror("FILE OPENING FAILED!") ;
+        -:  488:
+        -:  489:		log(3, DEBUG, "OPENING FILE", "Open File Error");
+        -:  490:
+        -:  491:		exit(0);
+        -:  492:	}
+        -:  493:	
+        -:  494:	// Read the file in Blocks of BLOCKSIZE 
+        -:  495:	status = read(fd, buffer, BLOCKSIZE);
+        -:  496:	if (status < 0) {
+        -:  497:		perror("FILE READ FAILURE!");
+        -:  498:		exit(0);
+        -:  499:	}	
+        -:  500:	
+        -:  501:	stringstream ss(buffer);
+        -:  502:	string intermediate;
+        -:  503:	
+        -:  504:	// Get Each Client Record
+        -:  505:	while (getline(ss, intermediate)) {
+        -:  506:		isActivated = SearchMobNum(intermediate, mobNumber);
+        -:  507:	}
+        -:  508:	
+        -:  509:	// Check if Service is Activated
+        -:  510:	if (isActivated == 0) {
+        -:  511:		msg = "yes";
+        -:  512:		SendData(const_cast<char*>(msg.c_str()));
+        -:  513:	} else if (isActivated == 1){
+        -:  514:		msg = "no";
+        -:  515:		SendData(const_cast<char*>(msg.c_str()));
+        -:  516:	}
+        -:  517:
+        -:  518:	log(3, INFO, "Exiting", "IsServiceActivated");
+        -:  519:
+        -:  520:	return SUCCESS;
+        -:  521:}
+        -:  522:
+        -:  523:
+        -:  524:
+        -:  525:/********************************************************************************************************************************
+        -:  526:*	FUNCTION NAME	:IsServiceActivated() 
+        -:  527:      
+        -:  528:*	DESCRIPTION     :Search if Mobile Number exists or not
+        -:  529:			  
+        -:  530:*	PARAMETER       :string data, string mNum
+        -:  531:*	
+        -:  532:*	RETURN          : int
+        -:  533:********************************************************************************************************************************/
+        -:  534:int Server::SearchMobNum(string data, string mNum) {
+        -:  535:
+        -:  536:	log(3, INFO, "Entering", "SearchMobNum");
+        -:  537:
+        -:  538:	string msg;
+        -:  539:	
+        -:  540:	// Split the Data into Client Number
+        -:  541:	vector<string> clientNum;
+        -:  542:	
+        -:  543:	stringstream ss(data);
+        -:  544:	string intermediate;
+        -:  545:	
+        -:  546:	while(getline(ss, intermediate, ',')) {
+        -:  547:		clientNum.push_back(intermediate);
+        -:  548:	}
+        -:  549:	
+        -:  550:	// Return SUCCESS if Mobile Number exists
+        -:  551:	if (clientNum[0] == mNum) {
+        -:  552:		return SUCCESS;
+        -:  553:	}
+        -:  554:	
+        -:  555:	log(3, INFO, "Exiting", "SearchMobNum");
+        -:  556:
+        -:  557:	return FAILURE;
+        -:  558:}
+        -:  559:
+        -:  560:
+        -:  561:/********************************************************************************************************************************
+        -:  562:*	FUNCTION NAME	:ProcessGlobalActivationRequest()
+        -:  563:      
+        -:  564:*	DESCRIPTION     :To Process Activation Request for Global Service
+        -:  565:			  
+        -:  566:*	PARAMETER       :void
+        -:  567:*	
+        -:  568:*	RETURN          : int
+        -:  569:********************************************************************************************************************************/
+        -:  570:int Server::ProcessGlobalActivationRequest() {
+        -:  571:
+        -:  572:	log(3, INFO, "Entering", "ProcessGlobalActivationRequest");
+        -:  573:
+        -:  574:	string msg;
+        -:  575:	string file = "../dat/ActivatedClients.txt";
+        -:  576:	string data = mobNumber + ",G" + "\n";
+        -:  577:
+        -:  578:	WriteFile(const_cast<char*>(data.c_str()), const_cast<char*>(file.c_str()));
+        -:  579:	
+        -:  580:	msg = "Global Service successfully Activated!";
+        -:  581:	SendData(const_cast<char*>(msg.c_str()));
+        -:  582:	
+        -:  583:	log(3, INFO, "Exiting", "ProcessGlobalActivationRequest");
+        -:  584:
+        -:  585:	return SUCCESS;
+        -:  586:}
+        -:  587:
+        -:  588:
+        -:  589:/********************************************************************************************************************************
+        -:  590:*	FUNCTION NAME	:ProcessSelectiveActivationRequest()
+        -:  591:      
+        -:  592:*	DESCRIPTION     : To Process Activation Request for Selective Service
+        -:  593:			  
+        -:  594:*	PARAMETER       :string blockNum
+        -:  595:*	
+        -:  596:*	RETURN          : int
+        -:  597:********************************************************************************************************************************/
+        -:  598:int Server::ProcessSelectiveActivationRequest(string blockNum) {
+        -:  599:
+        -:  600:	log(3, INFO, "Entering", "ProcessSelectiveActivationRequest");
+        -:  601:
+        -:  602:	string msg;
+        -:  603:	string file = "../dat/ActivatedClients.txt";
+        -:  604:	string data = mobNumber + ",S," + blockNum + "\n";
+        -:  605:
+        -:  606:	WriteFile(const_cast<char*>(data.c_str()), const_cast<char*>(file.c_str()));
+        -:  607:	
+        -:  608:	msg = "Selective Service successfully Activated!";
+        -:  609:	SendData(const_cast<char*>(msg.c_str()));
+        -:  610:
+        -:  611:	log(3, INFO, "Exiting", "ProcessSelectiveActivationRequest");
+        -:  612:
+        -:  613:	return SUCCESS;
+        -:  614:}
+        -:  615:
+        -:  616:
+        -:  617:
+        -:  618:/********************************************************************************************************************************
+        -:  619:*	FUNCTION NAME	:ProcessDeactivationRequest()
+        -:  620:      
+        -:  621:*	DESCRIPTION     : To Process Deactivation Request for Mobile Number
+        -:  622:
+        -:  623:			  
+        -:  624:*	PARAMETER       :void
+        -:  625:*	
+        -:  626:*	RETURN          : int
+        -:  627:********************************************************************************************************************************/
+        -:  628:int Server::ProcessDeactivationRequest() {
+        -:  629:
+        -:  630:	log(3, INFO, "Entering", "ProcessDeactivationRequest");
+        -:  631:	
+        -:  632:	int status = 0;
+        -:  633:	string msg = "";
+        -:  634:	string data = "";
+        -:  635:	char buffer[BUFFERSIZE] = {0};
+        -:  636:	string file = "../dat/ActivatedClients.txt";
+        -:  637:    const char* clientFile = file.c_str();
+        -:  638:
+        -:  639:	// Clear Previous Records
+        -:  640:	clientRecord.clear();
+        -:  641:	
+        -:  642:	// Opening the File in Read Mode
+        -:  643:	fd = open(clientFile, O_RDONLY);
+        -:  644:	if (fd < 0) {
+        -:  645:		perror("FILE OPENING FAILED!") ;
+        -:  646:		exit(0);
+        -:  647:	}
+        -:  648:	
+        -:  649:	// Read the file in Blocks of BLOCKSIZE 
+        -:  650:	status = read(fd, buffer, BLOCKSIZE);
+        -:  651:	if (status < 0) {
+        -:  652:		perror("FILE READ FAILURE!");
+        -:  653:
+        -:  654:		log(3, DEBUG, "READING FILE", "Read File Error");
+        -:  655:
+        -:  656:		exit(0);
+        -:  657:	}	
+        -:  658:	
+        -:  659:	stringstream ss(buffer);
+        -:  660:	string intermediate;
+        -:  661:	
+        -:  662:	// Get Each Client Record
+        -:  663:	while (getline(ss, intermediate)) {
+        -:  664:		clientRecord.push_back(intermediate);
+        -:  665:	}
+        -:  666:	
+        -:  667:	// Delete Record of Client if Mobile Number Exists
+        -:  668:	for(unsigned int i = 0; i < clientRecord.size(); i++) {
+        -:  669:		if (SearchMobNum(clientRecord[i], mobNumber) == 0) {
+        -:  670:
+        -:  671:			// clientRecord[i].erase();
+        -:  672:			clientRecord.erase(clientRecord.begin() + i);
+        -:  673:		}
+        -:  674:	}
+        -:  675:	
+        -:  676:	// Close File Descriptor
+        -:  677:	close(fd);
+        -:  678:	
+        -:  679:	// Append Updated Data
+        -:  680:	for(unsigned int i = 0; i < clientRecord.size(); i++) {
+        -:  681:		data.append(clientRecord[i]);
+        -:  682:		data.append("\n");
+        -:  683:	}
+        -:  684:	
+        -:  685:	// Open File in Truncate Mode
+        -:  686:	fd = open(clientFile, O_TRUNC);
+        -:  687:	if (fd < 0) {
+        -:  688:		perror("FILE OPENING FAILED!");
+        -:  689:
+        -:  690:		log(3, DEBUG, "OPENING FILE", "Open File Error");
+        -:  691:
+        -:  692:		exit(0);
+        -:  693:	}
+        -:  694:	
+        -:  695:	// Close File Descriptor
+        -:  696:	close(fd);
+        -:  697:		
+        -:  698:	// Write Updated Data to File
+        -:  699:	WriteFile(const_cast<char*>(data.c_str()), const_cast<char*>(file.c_str()));
+        -:  700:	
+        -:  701:	// Send Message to Client
+        -:  702:	msg = "DND Service is successfully Deactivated!";
+        -:  703:	SendData(const_cast<char*>(msg.c_str()));
+        -:  704:
+        -:  705:	log(3, INFO, "Exiting", "ProcessDeactivationRequest");
+        -:  706:
+        -:  707:	return SUCCESS;
+        -:  708:}
+        -:  709:
+        -:  710:
+        -:  711:/********************************************************************************************************************************
+        -:  712:*	FUNCTION NAME	:ProcessUpdateRequest()
+        -:  713:      
+        -:  714:*	DESCRIPTION     : Process Update Service Request for Mobile Number
+        -:  715:			  
+        -:  716:*	PARAMETER       :void
+        -:  717:*	
+        -:  718:*	RETURN          : int
+        -:  719:********************************************************************************************************************************/
+        -:  720:int Server::ProcessUpdateRequest() {
+        -:  721:
+        -:  722:	log(3, INFO, "Entering", "ProcessUpdateRequest");
+        -:  723:	
+        -:  724:	string msg = "";
+        -:  725:	
+        -:  726:	// Send Message to Client
+        -:  727:	msg = "DND Service is successfully Updated!";
+        -:  728:	SendData(const_cast<char*>(msg.c_str()));
+        -:  729:	
+        -:  730:	log(3, INFO, "Exiting", "ProcessUpdateRequest");
+        -:  731:
+        -:  732:	return SUCCESS;
+        -:  733:}
+        -:  734:
+        -:  735:
+        -:  736:
+        -:  737:/********************************************************************************************************************************
+        -:  738:*	FUNCTION NAME	:WriteFile
+        -:  739:      
+        -:  740:*	DESCRIPTION     :Write Data to File
+        -:  741:			  
+        -:  742:*	PARAMETER       :char* data, char* fname
+        -:  743:*	
+        -:  744:*	RETURN          : int
+        -:  745:********************************************************************************************************************************/
+        -:  746:
+        -:  747:int Server::WriteFile(char* data, char* fname) {
+        -:  748:
+        -:  749:	log(3, INFO, "Entering", "WriteFile");
+        -:  750:
+        -:  751:    
+        -:  752:    int status = 0;
+        -:  753:    
+        -:  754:	// Opening the File
+        -:  755:	fd = open(fname, O_WRONLY|O_APPEND, S_IRWXU);
+        -:  756:	if (fd < 0) {
+        -:  757:		perror("FILE OPENING FAILED!") ;
+        -:  758:		
+        -:  759:		log(3, DEBUG, "WRITING FILE", "Write File Error");
+        -:  760:
+        -:  761:		exit(0);
+        -:  762:	}
+        -:  763:
+        -:  764:    // Write to File
+        -:  765:    status = write(fd, data, strlen(data));
+        -:  766:	if (status < 0) {
+        -:  767:	 	perror("FILE WRITE FAILURE!");
+        -:  768:        exit(0);
+        -:  769:	}
+        -:  770:	
+        -:  771:	// Close File Descriptor
+        -:  772:	close(fd);
+        -:  773:
+        -:  774:	log(3, INFO, "Exiting", "WriteFile");
+        -:  775:
+        -:  776:
+        -:  777:    return SUCCESS;
+        -:  778:}
+        -:  779:
+        -:  780:	
+        -:  781:/********************************************************************************************************************************
+        -:  782:*	FUNCTION NAME	:~Server()
+        -:  783:      
+        -:  784:*	DESCRIPTION     :Destructor
+        -:  785:			  
+        -:  786:*	PARAMETER       :void
+        -:  787:*	
+        -:  788:*	RETURN          :void
+        -:  789:********************************************************************************************************************************/
+        -:  790:Server::~Server() {
+        -:  791:
+        -:  792:	log(3, INFO, "Entering", "Destructor");
+        -:  793:
+        -:  794:
+        -:  795:	int sstatus = 0, cstatus = 0;
+        -:  796:
+        -:  797:	// Closing the Connection Descriptor
+        -:  798:	cstatus = close(cd);
+        -:  799:	if (cstatus < 0) {
+        -:  800:		perror("CONNECTION CLOSE FAILURE");
+        -:  801:
+        -:  802:		log(3, DEBUG, "CONNECTION CLOSE", "Close Error");
+        -:  803:
+        -:  804:		exit(0);
+        -:  805:	}
+        -:  806:
+        -:  807:	// Closing the Socket Descriptor
+        -:  808:	sstatus = close(sd);
+        -:  809:	if (sstatus < 0) {
+        -:  810:		perror("SOCKET CLOSE FAILURE");
+        -:  811:		exit(0);
+        -:  812:	}
+        -:  813:
+        -:  814:	log(3, INFO, "Exiting", "Destructor");
+        -:  815:
+        -:  816:}

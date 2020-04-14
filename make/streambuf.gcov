@@ -1,0 +1,804 @@
+        -:    0:Source:/usr/lib/gcc/x86_64-redhat-linux/4.4.7/../../../../include/c++/4.4.7/streambuf
+        -:    0:Graph:server.gcno
+        -:    0:Data:server.gcda
+        -:    0:Runs:0
+        -:    0:Programs:0
+        -:    1:// Stream buffer classes -*- C++ -*-
+        -:    2:
+        -:    3:// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+        -:    4:// 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+        -:    5://
+        -:    6:// This file is part of the GNU ISO C++ Library.  This library is free
+        -:    7:// software; you can redistribute it and/or modify it under the
+        -:    8:// terms of the GNU General Public License as published by the
+        -:    9:// Free Software Foundation; either version 3, or (at your option)
+        -:   10:// any later version.
+        -:   11:
+        -:   12:// This library is distributed in the hope that it will be useful,
+        -:   13:// but WITHOUT ANY WARRANTY; without even the implied warranty of
+        -:   14:// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        -:   15:// GNU General Public License for more details.
+        -:   16:
+        -:   17:// Under Section 7 of GPL version 3, you are granted additional
+        -:   18:// permissions described in the GCC Runtime Library Exception, version
+        -:   19:// 3.1, as published by the Free Software Foundation.
+        -:   20:
+        -:   21:// You should have received a copy of the GNU General Public License and
+        -:   22:// a copy of the GCC Runtime Library Exception along with this program;
+        -:   23:// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+        -:   24:// <http://www.gnu.org/licenses/>.
+        -:   25:
+        -:   26:/** @file streambuf
+        -:   27: *  This is a Standard C++ Library header.
+        -:   28: */
+        -:   29:
+        -:   30://
+        -:   31:// ISO C++ 14882: 27.5  Stream buffers
+        -:   32://
+        -:   33:
+        -:   34:#ifndef _GLIBXX_STREAMBUF
+        -:   35:#define _GLIBXX_STREAMBUF 1
+        -:   36:
+        -:   37:#pragma GCC system_header
+        -:   38:
+        -:   39:#include <bits/c++config.h>
+        -:   40:#include <iosfwd>
+        -:   41:#include <bits/localefwd.h>
+        -:   42:#include <bits/ios_base.h>
+        -:   43:#include <bits/cpp_type_traits.h>
+        -:   44:#include <ext/type_traits.h>
+        -:   45:
+        -:   46:_GLIBCXX_BEGIN_NAMESPACE(std)
+        -:   47:
+        -:   48:  template<typename _CharT, typename _Traits>
+        -:   49:    streamsize
+        -:   50:    __copy_streambufs_eof(basic_streambuf<_CharT, _Traits>*,
+        -:   51:			  basic_streambuf<_CharT, _Traits>*, bool&);
+        -:   52:
+        -:   53:  /**
+        -:   54:   *  @brief  The actual work of input and output (interface).
+        -:   55:   *
+        -:   56:   *  This is a base class.  Derived stream buffers each control a
+        -:   57:   *  pair of character sequences:  one for input, and one for output.
+        -:   58:   *
+        -:   59:   *  Section [27.5.1] of the standard describes the requirements and
+        -:   60:   *  behavior of stream buffer classes.  That section (three paragraphs)
+        -:   61:   *  is reproduced here, for simplicity and accuracy.
+        -:   62:   *
+        -:   63:   *  -# Stream buffers can impose various constraints on the sequences
+        -:   64:   *     they control.  Some constraints are:
+        -:   65:   *     - The controlled input sequence can be not readable.
+        -:   66:   *     - The controlled output sequence can be not writable.
+        -:   67:   *     - The controlled sequences can be associated with the contents of
+        -:   68:   *       other representations for character sequences, such as external
+        -:   69:   *       files.
+        -:   70:   *     - The controlled sequences can support operations @e directly to or
+        -:   71:   *       from associated sequences.
+        -:   72:   *     - The controlled sequences can impose limitations on how the
+        -:   73:   *       program can read characters from a sequence, write characters to
+        -:   74:   *       a sequence, put characters back into an input sequence, or alter
+        -:   75:   *       the stream position.
+        -:   76:   *     .
+        -:   77:   *  -# Each sequence is characterized by three pointers which, if non-null,
+        -:   78:   *     all point into the same @c charT array object.  The array object
+        -:   79:   *     represents, at any moment, a (sub)sequence of characters from the
+        -:   80:   *     sequence.  Operations performed on a sequence alter the values
+        -:   81:   *     stored in these pointers, perform reads and writes directly to or
+        -:   82:   *     from associated sequences, and alter "the stream position" and
+        -:   83:   *     conversion state as needed to maintain this subsequence relationship.
+        -:   84:   *     The three pointers are:
+        -:   85:   *     - the <em>beginning pointer</em>, or lowest element address in the
+        -:   86:   *       array (called @e xbeg here);
+        -:   87:   *     - the <em>next pointer</em>, or next element address that is a
+        -:   88:   *       current candidate for reading or writing (called @e xnext here);
+        -:   89:   *     - the <em>end pointer</em>, or first element address beyond the
+        -:   90:   *       end of the array (called @e xend here).
+        -:   91:   *     .
+        -:   92:   *  -# The following semantic constraints shall always apply for any set
+        -:   93:   *     of three pointers for a sequence, using the pointer names given
+        -:   94:   *     immediately above:
+        -:   95:   *     - If @e xnext is not a null pointer, then @e xbeg and @e xend shall
+        -:   96:   *       also be non-null pointers into the same @c charT array, as
+        -:   97:   *       described above; otherwise, @e xbeg and @e xend shall also be null.
+        -:   98:   *     - If @e xnext is not a null pointer and @e xnext < @e xend for an
+        -:   99:   *       output sequence, then a <em>write position</em> is available.
+        -:  100:   *       In this case, @e *xnext shall be assignable as the next element
+        -:  101:   *       to write (to put, or to store a character value, into the sequence).
+        -:  102:   *     - If @e xnext is not a null pointer and @e xbeg < @e xnext for an
+        -:  103:   *       input sequence, then a <em>putback position</em> is available.
+        -:  104:   *       In this case, @e xnext[-1] shall have a defined value and is the
+        -:  105:   *       next (preceding) element to store a character that is put back
+        -:  106:   *       into the input sequence.
+        -:  107:   *     - If @e xnext is not a null pointer and @e xnext< @e xend for an
+        -:  108:   *       input sequence, then a <em>read position</em> is available.
+        -:  109:   *       In this case, @e *xnext shall have a defined value and is the
+        -:  110:   *       next element to read (to get, or to obtain a character value,
+        -:  111:   *       from the sequence).
+        -:  112:  */
+        -:  113:  template<typename _CharT, typename _Traits>
+        -:  114:    class basic_streambuf 
+        -:  115:    {
+        -:  116:    public:
+        -:  117:      //@{
+        -:  118:      /**
+        -:  119:       *  These are standard types.  They permit a standardized way of
+        -:  120:       *  referring to names of (or names dependant on) the template
+        -:  121:       *  parameters, which are specific to the implementation.
+        -:  122:      */
+        -:  123:      typedef _CharT 					char_type;
+        -:  124:      typedef _Traits 					traits_type;
+        -:  125:      typedef typename traits_type::int_type 		int_type;
+        -:  126:      typedef typename traits_type::pos_type 		pos_type;
+        -:  127:      typedef typename traits_type::off_type 		off_type;
+        -:  128:      //@}
+        -:  129:
+        -:  130:      //@{
+        -:  131:      /// This is a non-standard type.
+        -:  132:      typedef basic_streambuf<char_type, traits_type>  	__streambuf_type;
+        -:  133:      //@}
+        -:  134:      
+        -:  135:      friend class basic_ios<char_type, traits_type>;
+        -:  136:      friend class basic_istream<char_type, traits_type>;
+        -:  137:      friend class basic_ostream<char_type, traits_type>;
+        -:  138:      friend class istreambuf_iterator<char_type, traits_type>;
+        -:  139:      friend class ostreambuf_iterator<char_type, traits_type>;
+        -:  140:
+        -:  141:      friend streamsize
+        -:  142:      __copy_streambufs_eof<>(__streambuf_type*, __streambuf_type*, bool&);
+        -:  143:
+        -:  144:      template<bool _IsMove, typename _CharT2>
+        -:  145:        friend typename __gnu_cxx::__enable_if<__is_char<_CharT2>::__value, 
+        -:  146:					       _CharT2*>::__type
+        -:  147:        __copy_move_a2(istreambuf_iterator<_CharT2>,
+        -:  148:		       istreambuf_iterator<_CharT2>, _CharT2*);
+        -:  149:
+        -:  150:      template<typename _CharT2>
+        -:  151:        friend typename __gnu_cxx::__enable_if<__is_char<_CharT2>::__value,
+        -:  152:				  istreambuf_iterator<_CharT2> >::__type
+        -:  153:        find(istreambuf_iterator<_CharT2>, istreambuf_iterator<_CharT2>,
+        -:  154:	     const _CharT2&);
+        -:  155:
+        -:  156:      template<typename _CharT2, typename _Traits2>
+        -:  157:        friend basic_istream<_CharT2, _Traits2>&
+        -:  158:        operator>>(basic_istream<_CharT2, _Traits2>&, _CharT2*);
+        -:  159:
+        -:  160:      template<typename _CharT2, typename _Traits2, typename _Alloc>
+        -:  161:        friend basic_istream<_CharT2, _Traits2>&
+        -:  162:        operator>>(basic_istream<_CharT2, _Traits2>&,
+        -:  163:		   basic_string<_CharT2, _Traits2, _Alloc>&);
+        -:  164:
+        -:  165:      template<typename _CharT2, typename _Traits2, typename _Alloc>
+        -:  166:        friend basic_istream<_CharT2, _Traits2>&
+        -:  167:        getline(basic_istream<_CharT2, _Traits2>&,
+        -:  168:		basic_string<_CharT2, _Traits2, _Alloc>&, _CharT2);
+        -:  169:
+        -:  170:    protected:
+        -:  171:      //@{
+        -:  172:      /**
+        -:  173:       *  This is based on _IO_FILE, just reordered to be more consistent,
+        -:  174:       *  and is intended to be the most minimal abstraction for an
+        -:  175:       *  internal buffer.
+        -:  176:       *  -  get == input == read
+        -:  177:       *  -  put == output == write
+        -:  178:      */
+        -:  179:      char_type* 		_M_in_beg;     // Start of get area. 
+        -:  180:      char_type* 		_M_in_cur;     // Current read area. 
+        -:  181:      char_type* 		_M_in_end;     // End of get area. 
+        -:  182:      char_type* 		_M_out_beg;    // Start of put area. 
+        -:  183:      char_type* 		_M_out_cur;    // Current put area. 
+        -:  184:      char_type* 		_M_out_end;    // End of put area.
+        -:  185:
+        -:  186:      /// Current locale setting.
+        -:  187:      locale 			_M_buf_locale;	
+        -:  188:
+        -:  189:  public:
+        -:  190:      /// Destructor deallocates no buffer space.
+        -:  191:      virtual 
+        -:  192:      ~basic_streambuf() 
+        -:  193:      { }
+        -:  194:
+        -:  195:      // [27.5.2.2.1] locales
+        -:  196:      /**
+        -:  197:       *  @brief  Entry point for imbue().
+        -:  198:       *  @param  loc  The new locale.
+        -:  199:       *  @return  The previous locale.
+        -:  200:       *
+        -:  201:       *  Calls the derived imbue(loc).
+        -:  202:      */
+        -:  203:      locale 
+        -:  204:      pubimbue(const locale &__loc)
+        -:  205:      {
+        -:  206:	locale __tmp(this->getloc());
+        -:  207:	this->imbue(__loc);
+        -:  208:	_M_buf_locale = __loc;
+        -:  209:	return __tmp;
+        -:  210:      }
+        -:  211:
+        -:  212:      /**
+        -:  213:       *  @brief  Locale access.
+        -:  214:       *  @return  The current locale in effect.
+        -:  215:       *
+        -:  216:       *  If pubimbue(loc) has been called, then the most recent @c loc
+        -:  217:       *  is returned.  Otherwise the global locale in effect at the time
+        -:  218:       *  of construction is returned.
+        -:  219:      */
+        -:  220:      locale   
+        -:  221:      getloc() const
+        -:  222:      { return _M_buf_locale; } 
+        -:  223:
+        -:  224:      // [27.5.2.2.2] buffer management and positioning
+        -:  225:      //@{
+        -:  226:      /**
+        -:  227:       *  @brief  Entry points for derived buffer functions.
+        -:  228:       *
+        -:  229:       *  The public versions of @c pubfoo dispatch to the protected
+        -:  230:       *  derived @c foo member functions, passing the arguments (if any)
+        -:  231:       *  and returning the result unchanged.
+        -:  232:      */
+        -:  233:      __streambuf_type* 
+        -:  234:      pubsetbuf(char_type* __s, streamsize __n) 
+        -:  235:      { return this->setbuf(__s, __n); }
+        -:  236:
+        -:  237:      pos_type 
+        -:  238:      pubseekoff(off_type __off, ios_base::seekdir __way, 
+        -:  239:		 ios_base::openmode __mode = ios_base::in | ios_base::out)
+        -:  240:      { return this->seekoff(__off, __way, __mode); }
+        -:  241:
+        -:  242:      pos_type 
+        -:  243:      pubseekpos(pos_type __sp,
+        -:  244:		 ios_base::openmode __mode = ios_base::in | ios_base::out)
+        -:  245:      { return this->seekpos(__sp, __mode); }
+        -:  246:
+        -:  247:      int 
+        -:  248:      pubsync() { return this->sync(); }
+        -:  249:      //@}
+        -:  250:
+        -:  251:      // [27.5.2.2.3] get area
+        -:  252:      /**
+        -:  253:       *  @brief  Looking ahead into the stream.
+        -:  254:       *  @return  The number of characters available.
+        -:  255:       *
+        -:  256:       *  If a read position is available, returns the number of characters
+        -:  257:       *  available for reading before the buffer must be refilled.
+        -:  258:       *  Otherwise returns the derived @c showmanyc().
+        -:  259:      */
+        -:  260:      streamsize 
+        -:  261:      in_avail() 
+        -:  262:      { 
+        -:  263:	const streamsize __ret = this->egptr() - this->gptr();
+        -:  264:	return __ret ? __ret : this->showmanyc();
+        -:  265:      }
+        -:  266:
+        -:  267:      /**
+        -:  268:       *  @brief  Getting the next character.
+        -:  269:       *  @return  The next character, or eof.
+        -:  270:       *
+        -:  271:       *  Calls @c sbumpc(), and if that function returns
+        -:  272:       *  @c traits::eof(), so does this function.  Otherwise, @c sgetc().
+        -:  273:      */
+        -:  274:      int_type 
+        -:  275:      snextc()
+        -:  276:      {
+        -:  277:	int_type __ret = traits_type::eof();
+        -:  278:	if (__builtin_expect(!traits_type::eq_int_type(this->sbumpc(), 
+        -:  279:						       __ret), true))
+        -:  280:	  __ret = this->sgetc();
+        -:  281:	return __ret;
+        -:  282:      }
+        -:  283:
+        -:  284:      /**
+        -:  285:       *  @brief  Getting the next character.
+        -:  286:       *  @return  The next character, or eof.
+        -:  287:       *
+        -:  288:       *  If the input read position is available, returns that character
+        -:  289:       *  and increments the read pointer, otherwise calls and returns
+        -:  290:       *  @c uflow().
+        -:  291:      */
+        -:  292:      int_type 
+        -:  293:      sbumpc()
+        -:  294:      {
+        -:  295:	int_type __ret;
+        -:  296:	if (__builtin_expect(this->gptr() < this->egptr(), true))
+        -:  297:	  {
+        -:  298:	    __ret = traits_type::to_int_type(*this->gptr());
+        -:  299:	    this->gbump(1);
+        -:  300:	  }
+        -:  301:	else 
+        -:  302:	  __ret = this->uflow();
+        -:  303:	return __ret;
+        -:  304:      }
+        -:  305:
+        -:  306:      /**
+        -:  307:       *  @brief  Getting the next character.
+        -:  308:       *  @return  The next character, or eof.
+        -:  309:       *
+        -:  310:       *  If the input read position is available, returns that character,
+        -:  311:       *  otherwise calls and returns @c underflow().  Does not move the 
+        -:  312:       *  read position after fetching the character.
+        -:  313:      */
+        -:  314:      int_type 
+        -:  315:      sgetc()
+        -:  316:      {
+        -:  317:	int_type __ret;
+        -:  318:	if (__builtin_expect(this->gptr() < this->egptr(), true))
+        -:  319:	  __ret = traits_type::to_int_type(*this->gptr());
+        -:  320:	else 
+        -:  321:	  __ret = this->underflow();
+        -:  322:	return __ret;
+        -:  323:      }
+        -:  324:
+        -:  325:      /**
+        -:  326:       *  @brief  Entry point for xsgetn.
+        -:  327:       *  @param  s  A buffer area.
+        -:  328:       *  @param  n  A count.
+        -:  329:       *
+        -:  330:       *  Returns xsgetn(s,n).  The effect is to fill @a s[0] through
+        -:  331:       *  @a s[n-1] with characters from the input sequence, if possible.
+        -:  332:      */
+        -:  333:      streamsize 
+        -:  334:      sgetn(char_type* __s, streamsize __n)
+        -:  335:      { return this->xsgetn(__s, __n); }
+        -:  336:
+        -:  337:      // [27.5.2.2.4] putback
+        -:  338:      /**
+        -:  339:       *  @brief  Pushing characters back into the input stream.
+        -:  340:       *  @param  c  The character to push back.
+        -:  341:       *  @return  The previous character, if possible.
+        -:  342:       *
+        -:  343:       *  Similar to sungetc(), but @a c is pushed onto the stream instead
+        -:  344:       *  of "the previous character".  If successful, the next character
+        -:  345:       *  fetched from the input stream will be @a c.
+        -:  346:      */
+        -:  347:      int_type 
+        -:  348:      sputbackc(char_type __c)
+        -:  349:      {
+        -:  350:	int_type __ret;
+        -:  351:	const bool __testpos = this->eback() < this->gptr();
+        -:  352:	if (__builtin_expect(!__testpos || 
+        -:  353:			     !traits_type::eq(__c, this->gptr()[-1]), false))
+        -:  354:	  __ret = this->pbackfail(traits_type::to_int_type(__c));
+        -:  355:	else 
+        -:  356:	  {
+        -:  357:	    this->gbump(-1);
+        -:  358:	    __ret = traits_type::to_int_type(*this->gptr());
+        -:  359:	  }
+        -:  360:	return __ret;
+        -:  361:      }
+        -:  362:
+        -:  363:      /**
+        -:  364:       *  @brief  Moving backwards in the input stream.
+        -:  365:       *  @return  The previous character, if possible.
+        -:  366:       *
+        -:  367:       *  If a putback position is available, this function decrements the
+        -:  368:       *  input pointer and returns that character.  Otherwise, calls and
+        -:  369:       *  returns pbackfail().  The effect is to "unget" the last character
+        -:  370:       *  "gotten".
+        -:  371:      */
+        -:  372:      int_type 
+        -:  373:      sungetc()
+        -:  374:      {
+        -:  375:	int_type __ret;
+        -:  376:	if (__builtin_expect(this->eback() < this->gptr(), true))
+        -:  377:	  {
+        -:  378:	    this->gbump(-1);
+        -:  379:	    __ret = traits_type::to_int_type(*this->gptr());
+        -:  380:	  }
+        -:  381:	else 
+        -:  382:	  __ret = this->pbackfail();
+        -:  383:	return __ret;
+        -:  384:      }
+        -:  385:
+        -:  386:      // [27.5.2.2.5] put area
+        -:  387:      /**
+        -:  388:       *  @brief  Entry point for all single-character output functions.
+        -:  389:       *  @param  c  A character to output.
+        -:  390:       *  @return  @a c, if possible.
+        -:  391:       *
+        -:  392:       *  One of two public output functions.
+        -:  393:       *
+        -:  394:       *  If a write position is available for the output sequence (i.e.,
+        -:  395:       *  the buffer is not full), stores @a c in that position, increments
+        -:  396:       *  the position, and returns @c traits::to_int_type(c).  If a write
+        -:  397:       *  position is not available, returns @c overflow(c).
+        -:  398:      */
+        -:  399:      int_type 
+        -:  400:      sputc(char_type __c)
+        -:  401:      {
+        -:  402:	int_type __ret;
+        -:  403:	if (__builtin_expect(this->pptr() < this->epptr(), true))
+        -:  404:	  {
+        -:  405:	    *this->pptr() = __c;
+        -:  406:	    this->pbump(1);
+        -:  407:	    __ret = traits_type::to_int_type(__c);
+        -:  408:	  }
+        -:  409:	else
+        -:  410:	  __ret = this->overflow(traits_type::to_int_type(__c));
+        -:  411:	return __ret;
+        -:  412:      }
+        -:  413:
+        -:  414:      /**
+        -:  415:       *  @brief  Entry point for all single-character output functions.
+        -:  416:       *  @param  s  A buffer read area.
+        -:  417:       *  @param  n  A count.
+        -:  418:       *
+        -:  419:       *  One of two public output functions.
+        -:  420:       *
+        -:  421:       *
+        -:  422:       *  Returns xsputn(s,n).  The effect is to write @a s[0] through
+        -:  423:       *  @a s[n-1] to the output sequence, if possible.
+        -:  424:      */
+        -:  425:      streamsize 
+        -:  426:      sputn(const char_type* __s, streamsize __n)
+        -:  427:      { return this->xsputn(__s, __n); }
+        -:  428:
+        -:  429:    protected:
+        -:  430:      /**
+        -:  431:       *  @brief  Base constructor.
+        -:  432:       *
+        -:  433:       *  Only called from derived constructors, and sets up all the
+        -:  434:       *  buffer data to zero, including the pointers described in the
+        -:  435:       *  basic_streambuf class description.  Note that, as a result,
+        -:  436:       *  - the class starts with no read nor write positions available,
+        -:  437:       *  - this is not an error
+        -:  438:      */
+        -:  439:      basic_streambuf()
+        -:  440:      : _M_in_beg(0), _M_in_cur(0), _M_in_end(0), 
+        -:  441:      _M_out_beg(0), _M_out_cur(0), _M_out_end(0),
+        -:  442:      _M_buf_locale(locale()) 
+        -:  443:      { }
+        -:  444:
+        -:  445:      // [27.5.2.3.1] get area access
+        -:  446:      //@{
+        -:  447:      /**
+        -:  448:       *  @brief  Access to the get area.
+        -:  449:       *
+        -:  450:       *  These functions are only available to other protected functions,
+        -:  451:       *  including derived classes.
+        -:  452:       *
+        -:  453:       *  - eback() returns the beginning pointer for the input sequence
+        -:  454:       *  - gptr() returns the next pointer for the input sequence
+        -:  455:       *  - egptr() returns the end pointer for the input sequence
+        -:  456:      */
+        -:  457:      char_type* 
+        -:  458:      eback() const { return _M_in_beg; }
+        -:  459:
+        -:  460:      char_type* 
+        -:  461:      gptr()  const { return _M_in_cur;  }
+        -:  462:
+        -:  463:      char_type* 
+        -:  464:      egptr() const { return _M_in_end; }
+        -:  465:      //@}
+        -:  466:
+        -:  467:      /**
+        -:  468:       *  @brief  Moving the read position.
+        -:  469:       *  @param  n  The delta by which to move.
+        -:  470:       *
+        -:  471:       *  This just advances the read position without returning any data.
+        -:  472:      */
+        -:  473:      void 
+        -:  474:      gbump(int __n) { _M_in_cur += __n; }
+        -:  475:
+        -:  476:      /**
+        -:  477:       *  @brief  Setting the three read area pointers.
+        -:  478:       *  @param  gbeg  A pointer.
+        -:  479:       *  @param  gnext  A pointer.
+        -:  480:       *  @param  gend  A pointer.
+        -:  481:       *  @post  @a gbeg == @c eback(), @a gnext == @c gptr(), and
+        -:  482:       *         @a gend == @c egptr()
+        -:  483:      */
+        -:  484:      void 
+        -:  485:      setg(char_type* __gbeg, char_type* __gnext, char_type* __gend)
+        -:  486:      {
+        -:  487:	_M_in_beg = __gbeg;
+        -:  488:	_M_in_cur = __gnext;
+        -:  489:	_M_in_end = __gend;
+        -:  490:      }
+        -:  491:
+        -:  492:      // [27.5.2.3.2] put area access
+        -:  493:      //@{
+        -:  494:      /**
+        -:  495:       *  @brief  Access to the put area.
+        -:  496:       *
+        -:  497:       *  These functions are only available to other protected functions,
+        -:  498:       *  including derived classes.
+        -:  499:       *
+        -:  500:       *  - pbase() returns the beginning pointer for the output sequence
+        -:  501:       *  - pptr() returns the next pointer for the output sequence
+        -:  502:       *  - epptr() returns the end pointer for the output sequence
+        -:  503:      */
+        -:  504:      char_type* 
+        -:  505:      pbase() const { return _M_out_beg; }
+        -:  506:
+        -:  507:      char_type* 
+        -:  508:      pptr() const { return _M_out_cur; }
+        -:  509:
+        -:  510:      char_type* 
+        -:  511:      epptr() const { return _M_out_end; }
+        -:  512:      //@}
+        -:  513:
+        -:  514:      /**
+        -:  515:       *  @brief  Moving the write position.
+        -:  516:       *  @param  n  The delta by which to move.
+        -:  517:       *
+        -:  518:       *  This just advances the write position without returning any data.
+        -:  519:      */
+        -:  520:      void 
+        -:  521:      pbump(int __n) { _M_out_cur += __n; }
+        -:  522:
+        -:  523:      /**
+        -:  524:       *  @brief  Setting the three write area pointers.
+        -:  525:       *  @param  pbeg  A pointer.
+        -:  526:       *  @param  pend  A pointer.
+        -:  527:       *  @post  @a pbeg == @c pbase(), @a pbeg == @c pptr(), and
+        -:  528:       *         @a pend == @c epptr()
+        -:  529:      */
+        -:  530:      void 
+        -:  531:      setp(char_type* __pbeg, char_type* __pend)
+        -:  532:      { 
+        -:  533:	_M_out_beg = _M_out_cur = __pbeg; 
+        -:  534:	_M_out_end = __pend;
+        -:  535:      }
+        -:  536:
+        -:  537:      // [27.5.2.4] virtual functions
+        -:  538:      // [27.5.2.4.1] locales
+        -:  539:      /**
+        -:  540:       *  @brief  Changes translations.
+        -:  541:       *  @param  loc  A new locale.
+        -:  542:       *
+        -:  543:       *  Translations done during I/O which depend on the current locale
+        -:  544:       *  are changed by this call.  The standard adds, "Between invocations
+        -:  545:       *  of this function a class derived from streambuf can safely cache
+        -:  546:       *  results of calls to locale functions and to members of facets
+        -:  547:       *  so obtained."
+        -:  548:       *
+        -:  549:       *  @note  Base class version does nothing.
+        -:  550:      */
+        -:  551:      virtual void 
+        -:  552:      imbue(const locale&) 
+        -:  553:      { }
+        -:  554:
+        -:  555:      // [27.5.2.4.2] buffer management and positioning
+        -:  556:      /**
+        -:  557:       *  @brief  Manipulates the buffer.
+        -:  558:       *
+        -:  559:       *  Each derived class provides its own appropriate behavior.  See
+        -:  560:       *  the next-to-last paragraph of 
+        -:  561:       *  http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt11ch25s02.html
+        -:  562:       *  for more on this function.
+        -:  563:       *
+        -:  564:       *  @note  Base class version does nothing, returns @c this.
+        -:  565:      */
+        -:  566:      virtual basic_streambuf<char_type,_Traits>* 
+        -:  567:      setbuf(char_type*, streamsize)
+        -:  568:      {	return this; }
+        -:  569:      
+        -:  570:      /**
+        -:  571:       *  @brief  Alters the stream positions.
+        -:  572:       *
+        -:  573:       *  Each derived class provides its own appropriate behavior.
+        -:  574:       *  @note  Base class version does nothing, returns a @c pos_type
+        -:  575:       *         that represents an invalid stream position.
+        -:  576:      */
+        -:  577:      virtual pos_type 
+        -:  578:      seekoff(off_type, ios_base::seekdir,
+        -:  579:	      ios_base::openmode /*__mode*/ = ios_base::in | ios_base::out)
+        -:  580:      { return pos_type(off_type(-1)); } 
+        -:  581:
+        -:  582:      /**
+        -:  583:       *  @brief  Alters the stream positions.
+        -:  584:       *
+        -:  585:       *  Each derived class provides its own appropriate behavior.
+        -:  586:       *  @note  Base class version does nothing, returns a @c pos_type
+        -:  587:       *         that represents an invalid stream position.
+        -:  588:      */
+        -:  589:      virtual pos_type 
+        -:  590:      seekpos(pos_type, 
+        -:  591:	      ios_base::openmode /*__mode*/ = ios_base::in | ios_base::out)
+        -:  592:      { return pos_type(off_type(-1)); } 
+        -:  593:
+        -:  594:      /**
+        -:  595:       *  @brief  Synchronizes the buffer arrays with the controlled sequences.
+        -:  596:       *  @return  -1 on failure.
+        -:  597:       *
+        -:  598:       *  Each derived class provides its own appropriate behavior,
+        -:  599:       *  including the definition of "failure".
+        -:  600:       *  @note  Base class version does nothing, returns zero.
+        -:  601:      */
+        -:  602:      virtual int 
+        -:  603:      sync() { return 0; }
+        -:  604:
+        -:  605:      // [27.5.2.4.3] get area
+        -:  606:      /**
+        -:  607:       *  @brief  Investigating the data available.
+        -:  608:       *  @return  An estimate of the number of characters available in the
+        -:  609:       *           input sequence, or -1.
+        -:  610:       *
+        -:  611:       *  "If it returns a positive value, then successive calls to
+        -:  612:       *  @c underflow() will not return @c traits::eof() until at least that
+        -:  613:       *  number of characters have been supplied.  If @c showmanyc()
+        -:  614:       *  returns -1, then calls to @c underflow() or @c uflow() will fail."
+        -:  615:       *  [27.5.2.4.3]/1
+        -:  616:       *
+        -:  617:       *  @note  Base class version does nothing, returns zero.
+        -:  618:       *  @note  The standard adds that "the intention is not only that the
+        -:  619:       *         calls [to underflow or uflow] will not return @c eof() but
+        -:  620:       *         that they will return "immediately".
+        -:  621:       *  @note  The standard adds that "the morphemes of @c showmanyc are
+        -:  622:       *         "es-how-many-see", not "show-manic".
+        -:  623:      */
+        -:  624:      virtual streamsize 
+        -:  625:      showmanyc() { return 0; }
+        -:  626:
+        -:  627:      /**
+        -:  628:       *  @brief  Multiple character extraction.
+        -:  629:       *  @param  s  A buffer area.
+        -:  630:       *  @param  n  Maximum number of characters to assign.
+        -:  631:       *  @return  The number of characters assigned.
+        -:  632:       *
+        -:  633:       *  Fills @a s[0] through @a s[n-1] with characters from the input
+        -:  634:       *  sequence, as if by @c sbumpc().  Stops when either @a n characters
+        -:  635:       *  have been copied, or when @c traits::eof() would be copied.
+        -:  636:       *
+        -:  637:       *  It is expected that derived classes provide a more efficient
+        -:  638:       *  implementation by overriding this definition.
+        -:  639:      */
+        -:  640:      virtual streamsize 
+        -:  641:      xsgetn(char_type* __s, streamsize __n);
+        -:  642:
+        -:  643:      /**
+        -:  644:       *  @brief  Fetches more data from the controlled sequence.
+        -:  645:       *  @return  The first character from the <em>pending sequence</em>.
+        -:  646:       *
+        -:  647:       *  Informally, this function is called when the input buffer is
+        -:  648:       *  exhausted (or does not exist, as buffering need not actually be
+        -:  649:       *  done).  If a buffer exists, it is "refilled".  In either case, the
+        -:  650:       *  next available character is returned, or @c traits::eof() to
+        -:  651:       *  indicate a null pending sequence.
+        -:  652:       *
+        -:  653:       *  For a formal definition of the pending sequence, see a good text
+        -:  654:       *  such as Langer & Kreft, or [27.5.2.4.3]/7-14.
+        -:  655:       *
+        -:  656:       *  A functioning input streambuf can be created by overriding only
+        -:  657:       *  this function (no buffer area will be used).  For an example, see
+        -:  658:       *  http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt11ch25.html
+        -:  659:       *
+        -:  660:       *  @note  Base class version does nothing, returns eof().
+        -:  661:      */
+        -:  662:      virtual int_type 
+        -:  663:      underflow()
+        -:  664:      { return traits_type::eof(); }
+        -:  665:
+        -:  666:      /**
+        -:  667:       *  @brief  Fetches more data from the controlled sequence.
+        -:  668:       *  @return  The first character from the <em>pending sequence</em>.
+        -:  669:       *
+        -:  670:       *  Informally, this function does the same thing as @c underflow(),
+        -:  671:       *  and in fact is required to call that function.  It also returns
+        -:  672:       *  the new character, like @c underflow() does.  However, this
+        -:  673:       *  function also moves the read position forward by one.
+        -:  674:      */
+        -:  675:      virtual int_type 
+        -:  676:      uflow() 
+        -:  677:      {
+        -:  678:	int_type __ret = traits_type::eof();
+        -:  679:	const bool __testeof = traits_type::eq_int_type(this->underflow(), 
+        -:  680:							__ret);
+        -:  681:	if (!__testeof)
+        -:  682:	  {
+        -:  683:	    __ret = traits_type::to_int_type(*this->gptr());
+        -:  684:	    this->gbump(1);
+        -:  685:	  }
+        -:  686:	return __ret;    
+        -:  687:      }
+        -:  688:
+        -:  689:      // [27.5.2.4.4] putback
+        -:  690:      /**
+        -:  691:       *  @brief  Tries to back up the input sequence.
+        -:  692:       *  @param  c  The character to be inserted back into the sequence.
+        -:  693:       *  @return  eof() on failure, "some other value" on success
+        -:  694:       *  @post  The constraints of @c gptr(), @c eback(), and @c pptr()
+        -:  695:       *         are the same as for @c underflow().
+        -:  696:       *
+        -:  697:       *  @note  Base class version does nothing, returns eof().
+        -:  698:      */
+        -:  699:      virtual int_type 
+        -:  700:      pbackfail(int_type /* __c */  = traits_type::eof())
+        -:  701:      { return traits_type::eof(); }
+        -:  702:
+        -:  703:      // Put area:
+        -:  704:      /**
+        -:  705:       *  @brief  Multiple character insertion.
+        -:  706:       *  @param  s  A buffer area.
+        -:  707:       *  @param  n  Maximum number of characters to write.
+        -:  708:       *  @return  The number of characters written.
+        -:  709:       *
+        -:  710:       *  Writes @a s[0] through @a s[n-1] to the output sequence, as if
+        -:  711:       *  by @c sputc().  Stops when either @a n characters have been
+        -:  712:       *  copied, or when @c sputc() would return @c traits::eof().
+        -:  713:       *
+        -:  714:       *  It is expected that derived classes provide a more efficient
+        -:  715:       *  implementation by overriding this definition.
+        -:  716:      */
+        -:  717:      virtual streamsize 
+        -:  718:      xsputn(const char_type* __s, streamsize __n);
+        -:  719:
+        -:  720:      /**
+        -:  721:       *  @brief  Consumes data from the buffer; writes to the
+        -:  722:       *          controlled sequence.
+        -:  723:       *  @param  c  An additional character to consume.
+        -:  724:       *  @return  eof() to indicate failure, something else (usually
+        -:  725:       *           @a c, or not_eof())
+        -:  726:       *
+        -:  727:       *  Informally, this function is called when the output buffer is full
+        -:  728:       *  (or does not exist, as buffering need not actually be done).  If a
+        -:  729:       *  buffer exists, it is "consumed", with "some effect" on the
+        -:  730:       *  controlled sequence.  (Typically, the buffer is written out to the
+        -:  731:       *  sequence verbatim.)  In either case, the character @a c is also
+        -:  732:       *  written out, if @a c is not @c eof().
+        -:  733:       *
+        -:  734:       *  For a formal definition of this function, see a good text
+        -:  735:       *  such as Langer & Kreft, or [27.5.2.4.5]/3-7.
+        -:  736:       *
+        -:  737:       *  A functioning output streambuf can be created by overriding only
+        -:  738:       *  this function (no buffer area will be used).
+        -:  739:       *
+        -:  740:       *  @note  Base class version does nothing, returns eof().
+        -:  741:      */
+        -:  742:      virtual int_type 
+        -:  743:      overflow(int_type /* __c */ = traits_type::eof())
+        -:  744:      { return traits_type::eof(); }
+        -:  745:
+        -:  746:#if _GLIBCXX_DEPRECATED
+        -:  747:    // Annex D.6
+        -:  748:    public:
+        -:  749:      /**
+        -:  750:       *  @brief  Tosses a character.
+        -:  751:       *
+        -:  752:       *  Advances the read pointer, ignoring the character that would have
+        -:  753:       *  been read.
+        -:  754:       *
+        -:  755:       *  See http://gcc.gnu.org/ml/libstdc++/2002-05/msg00168.html
+        -:  756:       */
+        -:  757:      void 
+        -:  758:      stossc() 
+        -:  759:      {
+        -:  760:	if (this->gptr() < this->egptr()) 
+        -:  761:	  this->gbump(1);
+        -:  762:	else 
+        -:  763:	  this->uflow();
+        -:  764:      }
+        -:  765:#endif
+        -:  766:
+        -:  767:    private:
+        -:  768:      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+        -:  769:      // Side effect of DR 50. 
+        -:  770:      basic_streambuf(const __streambuf_type& __sb)
+        -:  771:      : _M_in_beg(__sb._M_in_beg), _M_in_cur(__sb._M_in_cur), 
+        -:  772:      _M_in_end(__sb._M_in_end), _M_out_beg(__sb._M_out_beg), 
+        -:  773:      _M_out_cur(__sb._M_out_cur), _M_out_end(__sb._M_out_cur),
+        -:  774:      _M_buf_locale(__sb._M_buf_locale) 
+        -:  775:      { }
+        -:  776:
+        -:  777:      __streambuf_type& 
+        -:  778:      operator=(const __streambuf_type&) { return *this; };
+        -:  779:    };
+        -:  780:
+        -:  781:  // Explicit specialization declarations, defined in src/streambuf.cc.
+        -:  782:  template<>
+        -:  783:    streamsize
+        -:  784:    __copy_streambufs_eof(basic_streambuf<char>* __sbin,
+        -:  785:			  basic_streambuf<char>* __sbout, bool& __ineof);
+        -:  786:#ifdef _GLIBCXX_USE_WCHAR_T
+        -:  787:  template<>
+        -:  788:    streamsize
+        -:  789:    __copy_streambufs_eof(basic_streambuf<wchar_t>* __sbin,
+        -:  790:			  basic_streambuf<wchar_t>* __sbout, bool& __ineof);
+        -:  791:#endif
+        -:  792:
+        -:  793:_GLIBCXX_END_NAMESPACE
+        -:  794:
+        -:  795:#ifndef _GLIBCXX_EXPORT_TEMPLATE
+        -:  796:# include <bits/streambuf.tcc>
+        -:  797:#endif
+        -:  798:
+        -:  799:#endif /* _GLIBCXX_STREAMBUF */

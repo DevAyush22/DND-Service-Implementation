@@ -1,0 +1,743 @@
+        -:    0:Source:../src/client.cpp
+        -:    0:Graph:client.gcno
+        -:    0:Data:client.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1:/**********************************************************************************
+        -:    2:*       FILENAME    : client.cpp
+        -:    3:*       DESCRIPTION : File contains definitions of the of clients that sends message to the server 
+        -:    4:*					  as per the client's request
+        -:    5:*
+        -:    6:*	AUTHOR		 : GR_McCARTHY_CPP_06
+        -:    7:*	
+        -:    8:*	DATE		 : 30 JANUARY,2020				
+        -:    9:*	
+        -:   10:*   COPYRIGHT  @ALTRAN.COM
+        -:   11:***********************************************************************************/
+        -:   12:
+        -:   13:/**********************************************************************************
+        -:   14:                       STANDARD HEADER FILES
+        -:   15:***********************************************************************************/
+        -:   16:#include <iostream>		//Input output purposes
+        -:   17:#include <vector>		//dynamic arrays with the ability to resize itself 
+        -:   18:#include <sstream>		//templates and types that enable interoperation between stream buffers and string objects
+        -:   19:#include <unistd.h>		//entry point to various constant, type and function declarations
+        -:   20:#include <cstdlib>		//for exit,integer arithmetics, searching, sorting and converting
+        -:   21:#include <stdio.h>		//Input output opearation, perror
+        -:   22:#include <cstring>		//required for string functions
+        -:   23:#include <errno.h>		//provies decalaration for errno
+        -:   24:#include <string.h>		//contain classes that are used for exception handling
+        -:   25:#include <sys/socket.h>	//define the sockaddr structure that includes at least the following members: sa_family_t sa_family Address family
+        -:   26:#include <sys/stat.h>	defines structure functions returned by fstats() and stat
+        -:   27:#include <sys/types.h>	//contains a number of basic derived types 
+        -:   28:#include <netinet/in.h>	//contains definitions for the internet protocol family
+        -:   29:#include <arpa/inet.h>	//define the INET_ADDRSTRLEN and INET6_ADDRSTRLEN macros
+        -:   30:#include <fcntl.h>		//use in the oflag value to open() and openat()
+        -:   31:
+        -:   32:/**********************************************************************************
+        -:   33:                       INCLUSION HEADER FILES
+        -:   34:***********************************************************************************/
+        -:   35:#include <client.h>
+        -:   36:#include <logger.h>
+        -:   37:
+        -:   38:/**********************************************************************************
+        -:   39:                               MACROS
+        -:   40:***********************************************************************************/
+        -:   41:#define BLOCKSIZE 512		// Block Size
+        -:   42:#define BUFFERSIZE 1024		// Max Buffer Size
+        -:   43:#define DELIM '.'           // Delimiter for Tokenizing IP Address
+        -:   44:
+        -:   45:#define SUCCESS 0           // Returns 0 for Success
+        -:   46:#define FAILURE 1           //Returns 1 for Failure
+        -:   47:
+        -:   48:using namespace std;
+        -:   49:
+        -:   50:
+        -:   51:/****************************************************************************************
+        -:   52:FUNCTION NAME	: IsNumber() 
+        -:   53:       
+        -:   54:DESCRIPTION		: This functions checks if all the characters in the string is a digit
+        -:   55:	
+        -:   56:PARAMETER		: const string & str
+        -:   57:	
+        -:   58:RETURN 			: bool
+        -:   59:*****************************************************************************************/
+        6:   60:bool IsNumber(const string & str) {
+        -:   61:	
+        6:   62:	log(3, INFO, "Entering", "IsNumber");
+        -:   63:
+        6:   64:	log(3, INFO, "Exiting", "IsNumber");
+        -:   65:    // std::find_first_not_of searches the string for the first character 
+        -:   66:    // that does not match any of the characters specified in its arguments
+        -:   67:
+        -:   68:    return !str.empty () && 
+        6:   69:    (str.find_first_not_of ("[0123456789]") == std::string::npos);	
+        -:   70:
+        -:   71:}
+        -:   72:
+        -:   73:
+        -:   74:
+        -:   75:/******************************************************************************************
+        -:   76:FUNCTION NAME	: IsValidaIp() 
+        -:   77:       
+        -:   78:DESCRIPTION  	 : This functions validates IP address. It returns true if valid and false if not valid
+        -:   79:	
+        -:   80:PARAMETER		: string ip
+        -:   81:	
+        -:   82:RETURN 			: bool
+        -:   83:********************************************************************************************/
+        1:   84:bool IsValidIp(string ip) {
+        -:   85:
+        1:   86:	log(3, INFO, "Entering", "IsValidIp");
+        -:   87:    
+        -:   88:    //Split the string into tokens
+        1:   89:    vector<string> tokens;
+        -:   90:	
+        1:   91:    stringstream ss(ip);
+        1:   92:    string intermediate;
+        -:   93:	
+        6:   94:    while (getline(ss, intermediate, DELIM)) {
+        4:   95:	    tokens.push_back(intermediate);
+        -:   96:	}
+        -:   97:
+        -:   98:	// Return false if tokens size is not equal to four
+        1:   99:	if (tokens.size() != 4) {
+    #####:  100:	    return false;
+        -:  101:	}
+        -:  102:
+        -:  103:	// Validate each token
+        5:  104:	for (unsigned int i = 0; i < tokens.size(); i++) {
+        -:  105:	    
+        -:  106:	// Verify that string is number or not and the numbers are in the valid range
+        4:  107:	if (!IsNumber(tokens[i]) || atoi(tokens[i].c_str()) > 255 || atoi(tokens[i].c_str()) < 0) {
+    #####:  108:	        return false;
+        -:  109:	    }
+        -:  110:	}
+        -:  111:
+        1:  112:	log(3, INFO, "Exiting", "IsValidIp");
+        -:  113:
+        1:  114:	return true;
+        -:  115:}
+        -:  116:
+        -:  117:
+        -:  118:/******************************************************************************************************************************
+        -:  119:FUNCTION NAME	: IsValidPortNum() 
+        -:  120:       
+        -:  121:DESCRIPTION		: This functions validates IP address. It returns true if valid and false if not valid
+        -:  122:	
+        -:  123:PARAMETER		: string ip
+        -:  124:	
+        -:  125:RETURN 			: bool
+        -:  126:******************************************************************************************************************************/
+        -:  127:
+        1:  128:bool IsValidPortNum(string portNum) {
+        -:  129:
+        1:  130:	log(3, INFO, "Entering", "IsValidPortNum");
+        -:  131:    
+        -:  132:    // Verify that Port Number is number or not
+        1:  133:    if (!IsNumber(portNum)) {
+        -:  134:
+    #####:  135:	log(3, DEBUG, "Entering", "IsValidPortNum"); 
+    #####:  136:        return false;
+        -:  137:    }
+        -:  138:    
+        1:  139:	log(3, DEBUG, "Exiting", "IsValidPortNum");
+        -:  140:
+        1:  141:    return true;
+        -:  142:}
+        -:  143:
+        -:  144:/********************************************************************************************************************************
+        -:  145:FUNCTION NAME		: IsValidMobileNum() 
+        -:  146:       
+        -:  147:DESCRIPTION         : Validates the phone number based on the number of digits and the first number in the string.
+        -:  148:			 		   The number is considered valid if it has got 10 digits and if the first number is 7 or 8 or 9. 
+        -:  149:	
+        -:  150:PARAMETER			: string mobNum
+        -:  151:	
+        -:  152:RETURN 				: bool
+        -:  153:********************************************************************************************************************************/
+        1:  154:bool IsValidMobileNum(string mobNum) {
+        -:  155:    
+        1:  156:	log(3, INFO, "Entering", "IsValidMobileNum");
+        -:  157:
+        1:  158:    int len = 0;
+        -:  159:    
+        -:  160:    // Verify that Mobile Number contains digit or not
+        1:  161:    if (!IsNumber(mobNum)) { 
+    #####:  162:        return false;
+        -:  163:    }
+        -:  164:    
+        -:  165:    // Mobile number should be of 10 digits
+        1:  166:    len = strlen(mobNum.c_str());
+        1:  167:    if (len != 10) {
+    #####:  168:        return false;
+        -:  169:    }
+        -:  170:    
+        -:  171:    // Mobile number should start from 7,8 or 9
+        1:  172:    if (mobNum[0] < '7') { 
+    #####:  173:        return false;    
+        -:  174:    }
+        -:  175:    
+        1:  176:	log(3, INFO, "Exiting", "IsValidPortNum");
+        -:  177:
+        1:  178:    return true;
+        -:  179:}
+        -:  180:
+        -:  181:
+        -:  182:/******************************************************************************************************************************
+        -:  183:constructor NAME	: Client 
+        -:  184:       
+        -:  185:DESCRIPTION     	: Sets the private data member sd to 0 and mobileNumber to NULL 
+        -:  186:
+        -:  187:*******************************************************************************************************************************/
+    #####:  188:Client::Client() {
+        -:  189:
+        -:  190:	//logfile.open("../dat/clientlog.txt", ios::out|ios::app);
+        -:  191:
+        -:  192://	log(3, INFO, "Entering", "Default Constructor");
+        -:  193:
+    #####:  194:	sd = 0;
+    #####:  195:	mobileNumber = "";
+        -:  196:
+        -:  197://	log(3, INFO, "Exiting", "Default Constructor");
+        -:  198:
+        -:  199:
+    #####:  200:}
+        -:  201:
+        -:  202:
+        -:  203:/******************************************************************************************************************************
+        -:  204:constructor NAME	: Client 
+        -:  205:       
+        -:  206:DESCRIPTION     	: Sets the private data members with the given values
+        -:  207:
+        -:  208:*******************************************************************************************************************************/
+        -:  209:
+        1:  210:Client::Client(string IpAddress, string PortNo, string mobNum) {
+        -:  211:
+        1:  212:	logfile.open("../dat/clientlog.txt", ios::out|ios::app);
+        -:  213:
+        1:  214:	log(3, INFO, "Entering", "Parameterized Constructor");
+        -:  215:
+        -:  216:	// Populate the Server Address structure
+        1:  217:	memset(&serverAddress, 0, sizeof(serverAddress));
+        1:  218:	serverAddress.sin_family = AF_INET;
+        1:  219:	serverAddress.sin_port = htons(atoi(PortNo.c_str())); 	// PORT NO
+        1:  220:	serverAddress.sin_addr.s_addr = inet_addr(IpAddress.c_str());	// IP ADDRESS	
+        1:  221:	mobileNumber = mobNum;	// MOBILE NUMBER
+        -:  222:
+        1:  223:	log(3, INFO, "Exiting", "Parameterized Constructor");
+    #####:  224:}
+        -:  225:
+        -:  226:
+        -:  227:/********************************************************************************************************************************
+        -:  228:FUNCTION NAME	: OpenSocket() 
+        -:  229:       
+        -:  230:DESCRIPTION		: Creates an endpoint for communication and returns a non-zero file descriptor on successful 
+        -:  231:		  		  socket creation that refers to the endpoint.
+        -:  232:				  
+        -:  233:PARAMETER		: void
+        -:  234:	
+        -:  235:RETURN 			: int
+        -:  236:********************************************************************************************************************************/
+        1:  237:int Client::OpenSocket() {
+        -:  238:
+        1:  239:	log(3, INFO, "Entering", "OpenSocket");
+        -:  240:
+        1:  241:	sd = socket(AF_INET, SOCK_STREAM, 0);
+        1:  242:	if (sd < 0) {
+    #####:  243:		perror("SOCKET OPEN FAILURE");
+        -:  244:
+    #####:  245:		log(3, DEBUG, "OPENING SOCKET", "Open socket error");
+        -:  246:
+    #####:  247:		exit(0);
+        -:  248:	}
+        -:  249:
+        1:  250:	log(3, INFO, "Exiting", "OpenSocket");
+        -:  251:	
+        1:  252:	return SUCCESS;
+        -:  253:}
+        -:  254:
+        -:  255:
+        -:  256:/********************************************************************************************************************************
+        -:  257:FUNCTION NAME	: Connect() 
+        -:  258:       
+        -:  259:DESCRIPTION		: Connects the socket referred to by the file descriptor sd to the address specified 
+        -:  260:     		      by the Server's address and the port
+        -:  261:	
+        -:  262:PARAMETER		: void
+        -:  263:	
+        -:  264:RETURN 			: int
+        -:  265:********************************************************************************************************************************/
+        1:  266:int Client::Connect() {
+        -:  267:
+        1:  268:	log(3, INFO, "Entering", "Connect");
+        -:  269:	
+        1:  270:	int status = 0;
+        -:  271:	
+        -:  272:	// Connect
+        1:  273:	status = connect(sd, (const struct sockaddr*) &serverAddress, sizeof(serverAddress));
+        1:  274:	if (status < 0) {
+    #####:  275:		perror("CONNECTION FAILURE");
+    #####:  276:		close(sd);
+        -:  277:	
+    #####:  278:		log(3, DEBUG, "CONNECT SOCKET", "Connect error");
+        -:  279:
+    #####:  280:		exit(0);
+        -:  281:	}
+        -:  282:	
+        1:  283:	cout << "Successfully Connected to the Server!" << endl;
+        -:  284:
+        1:  285:	log(3, DEBUG, "Exiting", "Connect");
+        -:  286:	
+        1:  287:	return SUCCESS;
+        -:  288:}
+        -:  289:
+        -:  290:
+        -:  291:/********************************************************************************************************************************
+        -:  292:FUNCTION NAME	: IsMobNumRegistered() 
+        -:  293:       
+        -:  294:DESCRIPTION   	: Checks if the number entered is registered in the database. If present, show the menu !! 
+        -:  295:		 		  Else, the number is registered in the database and the menu is shown.
+        -:  296:	
+        -:  297:PARAMETER		: string mobNum
+        -:  298:	
+        -:  299:RETURN 			: int
+        -:  300:********************************************************************************************************************************/
+        1:  301:int Client::IsMobNumRegistered(string mobNum) {
+        -:  302:
+        1:  303:	log(3, INFO, "Entering", "IsMobNumRegistered");
+        -:  304:
+        1:  305:	mobileNumber = mobNum;
+        -:  306:	
+        -:  307:	// '1' if Mobile Number is Registered or Not
+        1:  308:	mobNum += ":1";
+        -:  309:	
+        1:  310:	SendData(const_cast<char*>(mobNum.c_str()));
+        -:  311:	
+        -:  312:	// Read the Data sent by Server
+        1:  313:	ReadData();
+        -:  314:
+        1:  315:	log(3, INFO, "Exiting", "IsMobNumRegistered");
+        -:  316:
+        -:  317:
+        1:  318:	return SUCCESS;
+        -:  319:}
+        -:  320:
+        -:  321:
+        -:  322:/********************************************************************************************************************************
+        -:  323:FUNCTION NAME	: SendData() 
+        -:  324:       
+        -:  325:DESCRIPTION  	: Transmits message to another socket using send() function which contains file descriptor,
+        -:  326:		 		   a buffer containing the message that is to be sent, the length of the buffer, a flag.  
+        -:  327:	
+        -:  328:PARAMETER		: char* data
+        -:  329:	
+        -:  330:RETURN 			: int
+        -:  331:********************************************************************************************************************************/
+       10:  332:int Client::SendData(char* data) {
+        -:  333:	
+       10:  334:	log(3, INFO, "Entering", "SendData");
+        -:  335:
+       10:  336:	int count = 0, bufferLen = 0;
+        -:  337:	char buffer[BUFFERSIZE];
+        -:  338:	
+       10:  339:	strcpy(buffer, data);
+       10:  340:	bufferLen = strlen(buffer);
+        -:  341:	
+        -:  342:	// Send Data
+       10:  343:	count = send(sd, buffer, bufferLen, 0);
+       10:  344:	if (count < 0 ) {
+    #####:  345:		perror("DATA NOT SENT TO SERVER");
+    #####:  346:		close(sd);
+        -:  347:
+    #####:  348:		log(3, DEBUG, "SENDDATA", "Sending data error");
+        -:  349:
+    #####:  350:		exit(0);
+        -:  351:	}
+        -:  352:	
+       10:  353:	cout << "Data: '" <<  buffer << "' is sent to Server successfully!" << endl;
+        -:  354:
+       10:  355:	log(3, INFO, "Exiting", "SendData");
+        -:  356:	
+       10:  357:	return SUCCESS;
+        -:  358:}
+        -:  359:
+        -:  360:
+        -:  361:/********************************************************************************************************************************
+        -:  362:FUNCTION NAME	: ReadData() 
+        -:  363:       
+        -:  364:DESCRIPTION		: Receives message from another socket using receive() function which contains file descriptor,
+        -:  365:		 		  a buffer in which the message that is sent is stored, the length of the buffer, a flag.  
+        -:  366:	
+        -:  367:PARAMETER		: void
+        -:  368:	
+        -:  369:RETURN 			: int
+        -:  370:********************************************************************************************************************************/
+        2:  371:int Client::ReadData() {
+        -:  372:	
+        2:  373:	log(3, INFO, "Entering", "ReadData");
+        -:  374:
+        -:  375:	socklen_t length;
+        -:  376:	char buffer[BUFFERSIZE];
+        2:  377:	length = sizeof(serverAddress);
+        2:  378:	int count = 0;
+        -:  379:
+        -:  380:	// Receive Data
+        2:  381:	count = recv(sd, buffer, BLOCKSIZE, 0);
+        2:  382:	if (count <= 0) {
+    #####:  383:		perror("DATA NOT RECEIVED FROM SERVER");
+    #####:  384:		close(sd);
+    #####:  385:		log(3, INFO, "READDATA", "Reading Data error");
+        -:  386:
+    #####:  387:		exit(0);
+        -:  388:	}
+        -:  389:
+        2:  390:	buffer[count] = '\0';
+        -:  391:	
+        2:  392:	cout << "Data Received from Server: " << buffer <<  endl;
+        -:  393:
+        2:  394:	log(3, DEBUG, "Exiting", "ReadData");
+        -:  395:
+        2:  396:	return SUCCESS;
+        -:  397:}
+        -:  398:
+        -:  399:
+        -:  400:/********************************************************************************************************************************
+        -:  401:FUNCTION NAME	: MainMenu() 
+        -:  402:       
+        -:  403:DESCRIPTION   	: Displays all the services that a client can avail. Actions are taken based on the choice entered by the client  
+        -:  404:	
+        -:  405:PARAMETER   	: void
+        -:  406:	
+        -:  407:RETURN 			: int
+        -:  408:********************************************************************************************************************************/
+        1:  409:int Client::MainMenu() {
+        -:  410:
+        1:  411:	log(3, INFO, "Entering", "MainMenu");
+        -:  412:	
+        -:  413:	// Choice
+        1:  414:	int choice = 0;
+        -:  415:	
+        -:  416:	// Exit Message
+        1:  417:	string msg = "Exit";
+        -:  418:	
+        -:  419:	// Performing Operation as per Client Choice
+        9:  420:	do {
+        -:  421:	    
+        9:  422:		cout << endl;
+        9:  423:	    cout << "************ MENU ************" << endl << endl;
+        -:  424:
+        9:  425:	    cout << "1. ACTIVATE DND SERVICE" << endl;
+        9:  426:	    cout << "2. DEACTIVATE DND SERVICE" << endl;
+        9:  427:	    cout << "3. UPDATE DND SERVICE" << endl;
+        9:  428:	    cout << "4. CALL ANOTHER CLIENT" << endl;
+        9:  429:	    cout << "5. EXIT" << endl << endl;
+        -:  430:
+        9:  431:	    cout << "******************************" << endl << endl;
+        -:  432:	
+        9:  433:	    cout << "Hi, which service would you like to avail? (1-5) : ";
+        9:  434:	    cin >> choice;
+        -:  435:	    
+        9:  436:	    cout << endl;
+        -:  437:	
+        9:  438:	    switch(choice) {
+        -:  439:	    
+        3:  440:	        case 1	:	cout << "Activate" << endl;
+        3:  441:	                    ActivateService();
+        3:  442:	                    break;
+        -:  443:						
+        2:  444:	        case 2	:	cout << "Deactivate" << endl;
+        2:  445:	                    DeactivateService();
+        2:  446:	                    break;
+        -:  447:	                    
+        2:  448:	        case 3	:	cout << "Update" << endl;
+        2:  449:	                    UpdateService();
+        2:  450:	                    break;
+        -:  451:	                    
+        1:  452:	        case 4	:	cout << "Call" << endl;
+        1:  453:	                    break;
+        -:  454:	                    
+        1:  455:	        case 5	:	SendData(const_cast<char*>(msg.c_str()));
+        1:  456:						break;
+        -:  457:	                    
+    #####:  458:	        default :   cout << "Invalid Choice!" << endl; 
+        -:  459:	                    break;
+        -:  460:	    
+        -:  461:	    }
+        -:  462:	    
+        -:  463:	} while (choice != 5);
+        -:  464:
+        1:  465:	log(3, INFO, "Exiting", "MainMenu");
+        -:  466:	
+        1:  467:	return SUCCESS;
+        -:  468:}
+        -:  469:
+        -:  470:
+        -:  471:/********************************************************************************************************************************
+        -:  472:FUNCTION NAME	: IsServiceActivated() 
+        -:  473:       
+        -:  474:DESCRIPTION   	: Checks if the service is activated for this number. If activated, displays to the 
+        -:  475:	       		  client that DND service is already avtivated. Else, send service request to the server.
+        -:  476:	
+        -:  477:PARAMETER		: void
+        -:  478:	
+        -:  479:RETURN 			: int
+        -:  480:********************************************************************************************************************************/
+        7:  481:int Client::IsServiceActivated() {
+        -:  482:
+        7:  483:	log(3, INFO, "Enterting", "IsServiceActivated");
+        -:  484:	
+        7:  485:	string mobNum = "";
+        -:  486:	char data[BUFFERSIZE];
+        -:  487:    
+        -:  488:	// '2' if Service is Activated or Not
+        7:  489:	mobNum = mobileNumber + ":2";
+        -:  490:	
+        -:  491:	// Check at Server Side in Database
+        -:  492:	// If Service is already Activated for the Mobile Number 
+        7:  493:	SendData(const_cast<char*>(mobNum.c_str()));
+        -:  494:	
+        -:  495:	// Receive Data from Server
+        7:  496:	int count = recv(sd, data, BLOCKSIZE, 0);
+        7:  497:	if (count <= 0) {
+    #####:  498:		perror("DATA NOT RECEIVED FROM SERVER");
+    #####:  499:		close(sd);
+    #####:  500:		exit(0);
+        -:  501:	}
+        7:  502:	data[count] = '\0';
+        -:  503:
+        7:  504:	cout << "Yes/No : " << data << endl;
+        -:  505:	
+        7:  506:	if (strcmp(data, "yes") == 0) {
+        4:  507:		return SUCCESS;
+        -:  508:		
+        3:  509:	} else if (strcmp(data, "no") == 0) {
+        3:  510:		return FAILURE;
+        -:  511:	}
+        -:  512:
+    #####:  513:	log(3, INFO, "Exiting", "IsServiceActivated");
+        -:  514:	
+    #####:  515:	return FAILURE;
+        -:  516:}
+        -:  517:
+        -:  518:
+        -:  519:/********************************************************************************************************************************
+        -:  520:FUNCTION NAME	: IsServiceActivated() 
+        -:  521:       
+        -:  522:DESCRIPTION		: Checks if the service is activated for this number. If activated, displays to the client 
+        -:  523:		 		  that DND service is already activated. Else, send service request to the server.
+        -:  524:	
+        -:  525:PARAMETER		: void
+        -:  526:	
+        -:  527:RETURN 			: int
+        -:  528:********************************************************************************************************************************/
+        3:  529:int Client::ActivateService() {
+        -:  530:
+        3:  531:	log(3, INFO, "Entering", "ActivateService");
+        -:  532:
+        3:  533:	int serviceType = 0;
+        3:  534:	string mobNum = "";
+        3:  535:    int isActivated = 1;
+        -:  536:
+        -:  537:	// Check if Service is Activated
+        3:  538:	isActivated = IsServiceActivated();
+        -:  539:	
+        -:  540:	// Exit if Service is Already Activated
+        3:  541:	if (isActivated == 0) {
+        3:  542:		cout << "Can't Proceed as Service is Already Activated!" << endl;
+        3:  543:		return FAILURE;
+        -:  544:
+        -:  545:	} else {
+        -:  546:		
+        -:  547:		// Else Display Menu and Proceed Further
+    #####:  548:		cout << "***** TYPES OF SERVICES *****" << endl;
+    #####:  549:		cout << "1. GLOBAL DND" << endl;
+    #####:  550:		cout << "2. SELECTIVE DND" << endl;
+    #####:  551:		cout << "*****************************" << endl << endl;
+        -:  552:			
+    #####:  553:		cout << "Which type of Service would you like to select?" << endl;
+    #####:  554:		cout << "Press 1 for Global and 2 for Selective : ";
+    #####:  555:		cin >> serviceType;
+        -:  556:
+    #####:  557:		while(serviceType < 1 || serviceType > 2) { 
+    #####:  558:			cout << "Invalid Choice! Please Enter Again (1/2) : ";
+    #####:  559:			cin >> serviceType;
+        -:  560:		}
+        -:  561:		
+    #####:  562:		cout << endl;
+        -:  563:		
+        -:  564:		// '3' if Global Service Activation is Requested
+    #####:  565:		mobNum = "";
+    #####:  566:		mobNum = mobileNumber + ":3";
+        -:  567:		
+    #####:  568:		char service[BUFFERSIZE] = {0};
+    #####:  569:		string ch = "";
+    #####:  570:		string blockNum = "", num = "";
+        -:  571:
+    #####:  572:		switch (serviceType) {
+        -:  573:						
+        -:  574:			
+        -:  575:			case 1	:	// Send Activation Request of 'Global Service' to Server		
+    #####:  576:						strcpy(service, mobNum.c_str());
+    #####:  577:						SendData(service);
+    #####:  578:						ReadData();
+    #####:  579:	                    break;
+        -:  580:
+        -:  581:			case 2	:	// Send Activation Request of 'Selective Service' to Server
+    #####:  582:						do {
+        -:  583:							
+        -:  584:							// Input from the user the number he wishes to Block
+    #####:  585:							cout  << "Enter the Number you want to Block: ";
+    #####:  586:							cin >> num;
+        -:  587:				
+    #####:  588:							while(!IsValidMobileNum(num)) {	
+    #####:  589:								cout << "Invalid Mobile Number!" << endl;
+    #####:  590:								cout << "Please Enter a Valid Number: ";
+    #####:  591:								cin >> num;
+        -:  592:							}	
+        -:  593:						
+    #####:  594:							blockNum.append(num);
+        -:  595:						
+    #####:  596:							cout << "Do you want to Block another number?(y/n) : ";
+    #####:  597:							cin >> ch;
+        -:  598:							
+    #####:  599:							while (ch != "y" && ch != "n") {
+    #####:  600:								cout << "Invalid Choice! Please Enter y or n : ";
+    #####:  601:								cin >> ch;
+        -:  602:							}
+        -:  603:							
+    #####:  604:							if (ch == "y") {
+    #####:  605:								blockNum.append(",");
+        -:  606:							}
+        -:  607:
+        -:  608:						} while (ch != "n");
+        -:  609:						
+        -:  610:						// '4' if Selective Service Activation is Requested
+    #####:  611:						mobNum = "";
+    #####:  612:						mobNum = mobileNumber + ":4" + ":" + blockNum;
+    #####:  613:						SendData(const_cast<char*>(mobNum.c_str()));
+    #####:  614:						ReadData();
+    #####:  615:						break;
+        -:  616:			
+    #####:  617:			default :   cout << "Invalid Choice!" << endl;
+        -:  618:						break;
+    #####:  619:		}
+        -:  620:	} 
+        -:  621:
+    #####:  622:	log(3, INFO, "Entering", "ActivateService");
+        -:  623:
+    #####:  624:	return SUCCESS;
+        -:  625:}
+        -:  626:
+        -:  627:
+        -:  628:/********************************************************************************************************************************
+        -:  629:FUNCTION NAME	: DeactivateService() 
+        -:  630:       
+        -:  631:DESCRIPTION   : Checks if DND service is activated first. If activated ,deactivation of DND is initialized. 
+        -:  632:                Else, displays that DND is not activated
+        -:  633:	
+        -:  634:PARAMETER	: void
+        -:  635:	
+        -:  636:RETURN 	: int
+        -:  637:********************************************************************************************************************************/
+        4:  638:int Client::DeactivateService() {
+        -:  639:
+        4:  640:	log(3, INFO, "Entering", "DeactivateService");
+        -:  641:	
+        4:  642:	string data = "";
+        4:  643:	string msg = "";
+        4:  644:	int isActivated = 0;
+        -:  645:
+        -:  646:	// Check if Service is Activated
+        4:  647:	isActivated = IsServiceActivated();
+        -:  648:	
+        -:  649:	// Exit if Service is Already Deactivated
+        4:  650:	if (isActivated == 1) {
+        3:  651:		cout << "Can't Proceed as Service is Already Deactivated!" << endl;
+        -:  652:		
+        3:  653:		return FAILURE;
+        -:  654:
+        -:  655:	} else {
+        -:  656:		
+        -:  657:		// '5' if Deactivation of Service is Requested
+        1:  658:		msg = mobileNumber + ":5";
+        1:  659:		SendData(const_cast<char*>(msg.c_str()));
+        1:  660:		ReadData();
+        -:  661:	}
+        -:  662:	
+        1:  663:	log(3, DEBUG, "Entering", "DeactivateService");
+        -:  664:	
+        1:  665:	return SUCCESS;
+        -:  666:}
+        -:  667:
+        -:  668:
+        -:  669:/********************************************************************************************************************************
+        -:  670:FUNCTION NAME	: UpdateService() 
+        -:  671:       
+        -:  672:DESCRIPTION   : Checks if the service is activated for this number. If activated, displays the client that DND service that is
+        -:  673:		  already avtivated and allows the client to change his type of service. Else, displays to activate the DND first.
+        -:  674:	
+        -:  675:PARAMETER	: void
+        -:  676:	
+        -:  677:RETURN 	: int
+        -:  678:********************************************************************************************************************************/
+        2:  679:int Client::UpdateService() {
+        -:  680:	
+        2:  681:	log(3, INFO, "Entering", "UpdateService");
+        -:  682:
+        2:  683:	string msg = "";
+        2:  684:	int isDeactivated = 1;
+        -:  685:	
+        -:  686:	// Deactivate Service
+        2:  687:	isDeactivated = DeactivateService();
+        -:  688:
+        2:  689:	if (isDeactivated == 0) {
+        -:  690:	
+        -:  691:		// Activate Service
+    #####:  692:		ActivateService();
+        -:  693:
+        -:  694:		// '6' if Update of Service is Requested
+    #####:  695:		msg = mobileNumber + ":6";
+    #####:  696:		SendData(const_cast<char*>(msg.c_str()));
+    #####:  697:		ReadData();
+        -:  698:	}
+        -:  699:	
+        2:  700:	log(3, INFO, "Exiting", "UpdateService");
+        -:  701:
+        2:  702:    return SUCCESS;
+        -:  703:}
+        -:  704:
+        -:  705:
+        -:  706:/*
+        -:  707:// Call another client
+        -:  708:int Client::Call() {
+        -:  709:	string num;
+        -:  710:	num = mobileNum + ":7";
+        -:  711:}
+        -:  712:*/
+        -:  713:
+        -:  714:
+        -:  715:/********************************************************************************************************************************
+        -:  716:DESTRUCTOR  	: ~Client() 
+        -:  717:       
+        -:  718:DESCRIPTION   : Closes the socket file descriptor 
+        -:  719:
+        -:  720:********************************************************************************************************************************/
+        1:  721:Client::~Client() {
+        -:  722:	
+        1:  723:	log(3, INFO, "Entering", "Destructor");
+        -:  724:
+        1:  725:	int status = 0;
+        -:  726:	
+        -:  727:	// Closing the Socket Descriptor
+        1:  728:	close(sd);
+        1:  729:	if (status < 0) {
+    #####:  730:	    perror("SOCKET CLOSE FAILURE");
+        -:  731:
+    #####:  732:		log(3, DEBUG, "DESTRUCTOR", "Socket closing error");
+        -:  733:
+    #####:  734:	    exit(0);
+        -:  735:	
+        -:  736:	log(3, INFO, "Exiting", "Destructor");
+        -:  737:	}
+        3:  738:}

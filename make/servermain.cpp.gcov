@@ -1,0 +1,55 @@
+        -:    0:Source:../src/servermain.cpp
+        -:    0:Graph:servermain.gcno
+        -:    0:Data:servermain.gcda
+        -:    0:Runs:0
+        -:    0:Programs:0
+        -:    1:/**********************************************************************************
+        -:    2:*	FILENAME     : servermain.c
+        -:    3:*	DESCRIPTION  : Contains the main funtion of server that connects to the client and does actions
+        -:    4:*				   based on the requests
+        -:    5:*		
+        -:    6:*  	AUTHOR		 : GR_McCARTHY_CPP_06
+        -:    7:*	
+        -:    8:*	DATE		 : 30 JANUARY,2020				
+        -:    9:*	
+        -:   10:*   COPYRIGHT  @ALTRAN.COM
+        -:   11:*
+        -:   12:***********************************************************************************/
+        -:   13:
+        -:   14:/**********************************************************************************
+        -:   15:                       STANDARD HEADER FILES
+        -:   16:***********************************************************************************/
+        -:   17:#include <iostream>	//Input output purposes
+        -:   18:/**********************************************************************************
+        -:   19:                       INCLUSION HEADER FILES
+        -:   20:***********************************************************************************/
+        -:   21:#include <server.h>
+        -:   22:#include <logger.h>
+        -:   23:
+        -:   24:/**********************************************************************************
+        -:   25:                       MACROS
+        -:   26:***********************************************************************************/
+        -:   27:
+        -:   28:#define SUCCESS 0           // Returns 0 for Success
+        -:   29:#define FAILURE 1           // Returns 1 for Failure
+        -:   30:
+        -:   31:// Main Function
+        -:   32:int main(int argc, char* argv[]) {
+        -:   33:
+        -:   34:	log(3, INFO, "Entering", "Main");
+        -:   35:	
+        -:   36:	// Creating object of Server class
+        -:   37:	Server s1;
+        -:   38:	
+        -:   39:	// Creation of a Socket
+        -:   40:	s1.OpenSocket();
+        -:   41:
+        -:   42:	// Bind Data
+        -:   43:	s1.BindData();
+        -:   44:	
+        -:   45:	// Listen for Connections
+        -:   46:	s1.Listen();
+        -:   47:	
+        -:   48:	log(3, INFO, "Exiting", "Main");
+        -:   49:	return SUCCESS;
+        -:   50:}/*EOF*/

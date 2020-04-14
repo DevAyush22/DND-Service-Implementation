@@ -1,0 +1,580 @@
+        -:    0:Source:/usr/lib/gcc/x86_64-redhat-linux/4.4.7/../../../../include/c++/4.4.7/bits/char_traits.h
+        -:    0:Graph:server.gcno
+        -:    0:Data:server.gcda
+        -:    0:Runs:0
+        -:    0:Programs:0
+        -:    1:// Character Traits for use by standard string and iostream -*- C++ -*-
+        -:    2:
+        -:    3:// Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
+        -:    4:// 2006, 2007, 2008, 2009
+        -:    5:// Free Software Foundation, Inc.
+        -:    6://
+        -:    7:// This file is part of the GNU ISO C++ Library.  This library is free
+        -:    8:// software; you can redistribute it and/or modify it under the
+        -:    9:// terms of the GNU General Public License as published by the
+        -:   10:// Free Software Foundation; either version 3, or (at your option)
+        -:   11:// any later version.
+        -:   12:
+        -:   13:// This library is distributed in the hope that it will be useful,
+        -:   14:// but WITHOUT ANY WARRANTY; without even the implied warranty of
+        -:   15:// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        -:   16:// GNU General Public License for more details.
+        -:   17:
+        -:   18:// Under Section 7 of GPL version 3, you are granted additional
+        -:   19:// permissions described in the GCC Runtime Library Exception, version
+        -:   20:// 3.1, as published by the Free Software Foundation.
+        -:   21:
+        -:   22:// You should have received a copy of the GNU General Public License and
+        -:   23:// a copy of the GCC Runtime Library Exception along with this program;
+        -:   24:// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+        -:   25:// <http://www.gnu.org/licenses/>.
+        -:   26:
+        -:   27:/** @file char_traits.h
+        -:   28: *  This is an internal header file, included by other library headers.
+        -:   29: *  You should not attempt to use it directly.
+        -:   30: */
+        -:   31:
+        -:   32://
+        -:   33:// ISO C++ 14882: 21  Strings library
+        -:   34://
+        -:   35:
+        -:   36:#ifndef _CHAR_TRAITS_H
+        -:   37:#define _CHAR_TRAITS_H 1
+        -:   38:
+        -:   39:#pragma GCC system_header
+        -:   40:
+        -:   41:#include <bits/stl_algobase.h>  // std::copy, std::fill_n
+        -:   42:#include <bits/postypes.h>      // For streampos
+        -:   43:#include <cwchar>               // For WEOF, wmemmove, wmemset, etc.
+        -:   44:
+        -:   45:#ifndef _GLIBCXX_STDIO_MACROS
+        -:   46:# include <cstdio>              // For EOF
+        -:   47:# define _CHAR_TRAITS_EOF EOF
+        -:   48:#else
+        -:   49:# define _CHAR_TRAITS_EOF (-1)
+        -:   50:#endif
+        -:   51:
+        -:   52:_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+        -:   53:
+        -:   54:  /**
+        -:   55:   *  @brief  Mapping from character type to associated types.
+        -:   56:   *
+        -:   57:   *  @note This is an implementation class for the generic version
+        -:   58:   *  of char_traits.  It defines int_type, off_type, pos_type, and
+        -:   59:   *  state_type.  By default these are unsigned long, streamoff,
+        -:   60:   *  streampos, and mbstate_t.  Users who need a different set of
+        -:   61:   *  types, but who don't need to change the definitions of any function
+        -:   62:   *  defined in char_traits, can specialize __gnu_cxx::_Char_types
+        -:   63:   *  while leaving __gnu_cxx::char_traits alone. */
+        -:   64:  template<typename _CharT>
+        -:   65:    struct _Char_types
+        -:   66:    {
+        -:   67:      typedef unsigned long   int_type;
+        -:   68:      typedef std::streampos  pos_type;
+        -:   69:      typedef std::streamoff  off_type;
+        -:   70:      typedef std::mbstate_t  state_type;
+        -:   71:    };
+        -:   72:
+        -:   73:
+        -:   74:  /**
+        -:   75:   *  @brief  Base class used to implement std::char_traits.
+        -:   76:   *
+        -:   77:   *  @note For any given actual character type, this definition is
+        -:   78:   *  probably wrong.  (Most of the member functions are likely to be
+        -:   79:   *  right, but the int_type and state_type typedefs, and the eof()
+        -:   80:   *  member function, are likely to be wrong.)  The reason this class
+        -:   81:   *  exists is so users can specialize it.  Classes in namespace std
+        -:   82:   *  may not be specialized for fundamental types, but classes in
+        -:   83:   *  namespace __gnu_cxx may be.
+        -:   84:   *
+        -:   85:   *  See http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt05ch13s03.html
+        -:   86:   *  for advice on how to make use of this class for "unusual" character
+        -:   87:   *  types. Also, check out include/ext/pod_char_traits.h.  
+        -:   88:   */
+        -:   89:  template<typename _CharT>
+        -:   90:    struct char_traits
+        -:   91:    {
+        -:   92:      typedef _CharT                                    char_type;
+        -:   93:      typedef typename _Char_types<_CharT>::int_type    int_type;
+        -:   94:      typedef typename _Char_types<_CharT>::pos_type    pos_type;
+        -:   95:      typedef typename _Char_types<_CharT>::off_type    off_type;
+        -:   96:      typedef typename _Char_types<_CharT>::state_type  state_type;
+        -:   97:
+        -:   98:      static void
+        -:   99:      assign(char_type& __c1, const char_type& __c2)
+        -:  100:      { __c1 = __c2; }
+        -:  101:
+        -:  102:      static bool
+        -:  103:      eq(const char_type& __c1, const char_type& __c2)
+        -:  104:      { return __c1 == __c2; }
+        -:  105:
+        -:  106:      static bool
+        -:  107:      lt(const char_type& __c1, const char_type& __c2)
+        -:  108:      { return __c1 < __c2; }
+        -:  109:
+        -:  110:      static int
+        -:  111:      compare(const char_type* __s1, const char_type* __s2, std::size_t __n);
+        -:  112:
+        -:  113:      static std::size_t
+        -:  114:      length(const char_type* __s);
+        -:  115:
+        -:  116:      static const char_type*
+        -:  117:      find(const char_type* __s, std::size_t __n, const char_type& __a);
+        -:  118:
+        -:  119:      static char_type*
+        -:  120:      move(char_type* __s1, const char_type* __s2, std::size_t __n);
+        -:  121:
+        -:  122:      static char_type*
+        -:  123:      copy(char_type* __s1, const char_type* __s2, std::size_t __n);
+        -:  124:
+        -:  125:      static char_type*
+        -:  126:      assign(char_type* __s, std::size_t __n, char_type __a);
+        -:  127:
+        -:  128:      static char_type
+        -:  129:      to_char_type(const int_type& __c)
+        -:  130:      { return static_cast<char_type>(__c); }
+        -:  131:
+        -:  132:      static int_type
+        -:  133:      to_int_type(const char_type& __c)
+        -:  134:      { return static_cast<int_type>(__c); }
+        -:  135:
+        -:  136:      static bool
+        -:  137:      eq_int_type(const int_type& __c1, const int_type& __c2)
+        -:  138:      { return __c1 == __c2; }
+        -:  139:
+        -:  140:      static int_type
+        -:  141:      eof()
+        -:  142:      { return static_cast<int_type>(_CHAR_TRAITS_EOF); }
+        -:  143:
+        -:  144:      static int_type
+        -:  145:      not_eof(const int_type& __c)
+        -:  146:      { return !eq_int_type(__c, eof()) ? __c : to_int_type(char_type()); }
+        -:  147:    };
+        -:  148:
+        -:  149:  template<typename _CharT>
+        -:  150:    int
+        -:  151:    char_traits<_CharT>::
+        -:  152:    compare(const char_type* __s1, const char_type* __s2, std::size_t __n)
+        -:  153:    {
+        -:  154:      for (std::size_t __i = 0; __i < __n; ++__i)
+        -:  155:	if (lt(__s1[__i], __s2[__i]))
+        -:  156:	  return -1;
+        -:  157:	else if (lt(__s2[__i], __s1[__i]))
+        -:  158:	  return 1;
+        -:  159:      return 0;
+        -:  160:    }
+        -:  161:
+        -:  162:  template<typename _CharT>
+        -:  163:    std::size_t
+        -:  164:    char_traits<_CharT>::
+        -:  165:    length(const char_type* __p)
+        -:  166:    {
+        -:  167:      std::size_t __i = 0;
+        -:  168:      while (!eq(__p[__i], char_type()))
+        -:  169:        ++__i;
+        -:  170:      return __i;
+        -:  171:    }
+        -:  172:
+        -:  173:  template<typename _CharT>
+        -:  174:    const typename char_traits<_CharT>::char_type*
+        -:  175:    char_traits<_CharT>::
+        -:  176:    find(const char_type* __s, std::size_t __n, const char_type& __a)
+        -:  177:    {
+        -:  178:      for (std::size_t __i = 0; __i < __n; ++__i)
+        -:  179:        if (eq(__s[__i], __a))
+        -:  180:          return __s + __i;
+        -:  181:      return 0;
+        -:  182:    }
+        -:  183:
+        -:  184:  template<typename _CharT>
+        -:  185:    typename char_traits<_CharT>::char_type*
+        -:  186:    char_traits<_CharT>::
+        -:  187:    move(char_type* __s1, const char_type* __s2, std::size_t __n)
+        -:  188:    {
+        -:  189:      return static_cast<_CharT*>(__builtin_memmove(__s1, __s2,
+        -:  190:						    __n * sizeof(char_type)));
+        -:  191:    }
+        -:  192:
+        -:  193:  template<typename _CharT>
+        -:  194:    typename char_traits<_CharT>::char_type*
+        -:  195:    char_traits<_CharT>::
+        -:  196:    copy(char_type* __s1, const char_type* __s2, std::size_t __n)
+        -:  197:    {
+        -:  198:      // NB: Inline std::copy so no recursive dependencies.
+        -:  199:      std::copy(__s2, __s2 + __n, __s1);
+        -:  200:      return __s1;
+        -:  201:    }
+        -:  202:
+        -:  203:  template<typename _CharT>
+        -:  204:    typename char_traits<_CharT>::char_type*
+        -:  205:    char_traits<_CharT>::
+        -:  206:    assign(char_type* __s, std::size_t __n, char_type __a)
+        -:  207:    {
+        -:  208:      // NB: Inline std::fill_n so no recursive dependencies.
+        -:  209:      std::fill_n(__s, __n, __a);
+        -:  210:      return __s;
+        -:  211:    }
+        -:  212:
+        -:  213:_GLIBCXX_END_NAMESPACE
+        -:  214:
+        -:  215:_GLIBCXX_BEGIN_NAMESPACE(std)
+        -:  216:
+        -:  217:  // 21.1
+        -:  218:  /**
+        -:  219:   *  @brief  Basis for explicit traits specializations.
+        -:  220:   *
+        -:  221:   *  @note  For any given actual character type, this definition is
+        -:  222:   *  probably wrong.  Since this is just a thin wrapper around
+        -:  223:   *  __gnu_cxx::char_traits, it is possible to achieve a more
+        -:  224:   *  appropriate definition by specializing __gnu_cxx::char_traits.
+        -:  225:   *
+        -:  226:   *  See http://gcc.gnu.org/onlinedocs/libstdc++/manual/bk01pt05ch13s03.html
+        -:  227:   *  for advice on how to make use of this class for "unusual" character
+        -:  228:   *  types. Also, check out include/ext/pod_char_traits.h.
+        -:  229:  */
+        -:  230:  template<class _CharT>
+        -:  231:    struct char_traits : public __gnu_cxx::char_traits<_CharT>
+        -:  232:    { };
+        -:  233:
+        -:  234:
+        -:  235:  /// 21.1.3.1  char_traits specializations
+        -:  236:  template<>
+        -:  237:    struct char_traits<char>
+        -:  238:    {
+        -:  239:      typedef char              char_type;
+        -:  240:      typedef int               int_type;
+        -:  241:      typedef streampos         pos_type;
+        -:  242:      typedef streamoff         off_type;
+        -:  243:      typedef mbstate_t         state_type;
+        -:  244:
+        -:  245:      static void
+        -:  246:      assign(char_type& __c1, const char_type& __c2)
+        -:  247:      { __c1 = __c2; }
+        -:  248:
+        -:  249:      static bool
+        -:  250:      eq(const char_type& __c1, const char_type& __c2)
+        -:  251:      { return __c1 == __c2; }
+        -:  252:
+        -:  253:      static bool
+        -:  254:      lt(const char_type& __c1, const char_type& __c2)
+        -:  255:      { return __c1 < __c2; }
+        -:  256:
+        -:  257:      static int
+        -:  258:      compare(const char_type* __s1, const char_type* __s2, size_t __n)
+        -:  259:      { return __builtin_memcmp(__s1, __s2, __n); }
+        -:  260:
+        -:  261:      static size_t
+        -:  262:      length(const char_type* __s)
+        -:  263:      { return __builtin_strlen(__s); }
+        -:  264:
+        -:  265:      static const char_type*
+        -:  266:      find(const char_type* __s, size_t __n, const char_type& __a)
+        -:  267:      { return static_cast<const char_type*>(__builtin_memchr(__s, __a, __n)); }
+        -:  268:
+        -:  269:      static char_type*
+        -:  270:      move(char_type* __s1, const char_type* __s2, size_t __n)
+        -:  271:      { return static_cast<char_type*>(__builtin_memmove(__s1, __s2, __n)); }
+        -:  272:
+        -:  273:      static char_type*
+        -:  274:      copy(char_type* __s1, const char_type* __s2, size_t __n)
+        -:  275:      { return static_cast<char_type*>(__builtin_memcpy(__s1, __s2, __n)); }
+        -:  276:
+        -:  277:      static char_type*
+        -:  278:      assign(char_type* __s, size_t __n, char_type __a)
+        -:  279:      { return static_cast<char_type*>(__builtin_memset(__s, __a, __n)); }
+        -:  280:
+        -:  281:      static char_type
+        -:  282:      to_char_type(const int_type& __c)
+        -:  283:      { return static_cast<char_type>(__c); }
+        -:  284:
+        -:  285:      // To keep both the byte 0xff and the eof symbol 0xffffffff
+        -:  286:      // from ending up as 0xffffffff.
+        -:  287:      static int_type
+        -:  288:      to_int_type(const char_type& __c)
+        -:  289:      { return static_cast<int_type>(static_cast<unsigned char>(__c)); }
+        -:  290:
+        -:  291:      static bool
+        -:  292:      eq_int_type(const int_type& __c1, const int_type& __c2)
+        -:  293:      { return __c1 == __c2; }
+        -:  294:
+        -:  295:      static int_type
+        -:  296:      eof()
+        -:  297:      { return static_cast<int_type>(_CHAR_TRAITS_EOF); }
+        -:  298:
+        -:  299:      static int_type
+        -:  300:      not_eof(const int_type& __c)
+        -:  301:      { return (__c == eof()) ? 0 : __c; }
+        -:  302:  };
+        -:  303:
+        -:  304:
+        -:  305:#ifdef _GLIBCXX_USE_WCHAR_T
+        -:  306:  /// 21.1.3.2  char_traits specializations
+        -:  307:  template<>
+        -:  308:    struct char_traits<wchar_t>
+        -:  309:    {
+        -:  310:      typedef wchar_t           char_type;
+        -:  311:      typedef wint_t            int_type;
+        -:  312:      typedef streamoff         off_type;
+        -:  313:      typedef wstreampos        pos_type;
+        -:  314:      typedef mbstate_t         state_type;
+        -:  315:
+        -:  316:      static void
+        -:  317:      assign(char_type& __c1, const char_type& __c2)
+        -:  318:      { __c1 = __c2; }
+        -:  319:
+        -:  320:      static bool
+        -:  321:      eq(const char_type& __c1, const char_type& __c2)
+        -:  322:      { return __c1 == __c2; }
+        -:  323:
+        -:  324:      static bool
+        -:  325:      lt(const char_type& __c1, const char_type& __c2)
+        -:  326:      { return __c1 < __c2; }
+        -:  327:
+        -:  328:      static int
+        -:  329:      compare(const char_type* __s1, const char_type* __s2, size_t __n)
+        -:  330:      { return wmemcmp(__s1, __s2, __n); }
+        -:  331:
+        -:  332:      static size_t
+        -:  333:      length(const char_type* __s)
+        -:  334:      { return wcslen(__s); }
+        -:  335:
+        -:  336:      static const char_type*
+        -:  337:      find(const char_type* __s, size_t __n, const char_type& __a)
+        -:  338:      { return wmemchr(__s, __a, __n); }
+        -:  339:
+        -:  340:      static char_type*
+        -:  341:      move(char_type* __s1, const char_type* __s2, size_t __n)
+        -:  342:      { return wmemmove(__s1, __s2, __n); }
+        -:  343:
+        -:  344:      static char_type*
+        -:  345:      copy(char_type* __s1, const char_type* __s2, size_t __n)
+        -:  346:      { return wmemcpy(__s1, __s2, __n); }
+        -:  347:
+        -:  348:      static char_type*
+        -:  349:      assign(char_type* __s, size_t __n, char_type __a)
+        -:  350:      { return wmemset(__s, __a, __n); }
+        -:  351:
+        -:  352:      static char_type
+        -:  353:      to_char_type(const int_type& __c)
+        -:  354:      { return char_type(__c); }
+        -:  355:
+        -:  356:      static int_type
+        -:  357:      to_int_type(const char_type& __c)
+        -:  358:      { return int_type(__c); }
+        -:  359:
+        -:  360:      static bool
+        -:  361:      eq_int_type(const int_type& __c1, const int_type& __c2)
+        -:  362:      { return __c1 == __c2; }
+        -:  363:
+        -:  364:      static int_type
+        -:  365:      eof()
+        -:  366:      { return static_cast<int_type>(WEOF); }
+        -:  367:
+        -:  368:      static int_type
+        -:  369:      not_eof(const int_type& __c)
+        -:  370:      { return eq_int_type(__c, eof()) ? 0 : __c; }
+        -:  371:  };
+        -:  372:#endif //_GLIBCXX_USE_WCHAR_T
+        -:  373:
+        -:  374:_GLIBCXX_END_NAMESPACE
+        -:  375:
+        -:  376:#if (defined(__GXX_EXPERIMENTAL_CXX0X__) \
+        -:  377:     && defined(_GLIBCXX_USE_C99_STDINT_TR1))
+        -:  378:
+        -:  379:#include <cstdint>
+        -:  380:
+        -:  381:_GLIBCXX_BEGIN_NAMESPACE(std)
+        -:  382:
+        -:  383:  template<>
+        -:  384:    struct char_traits<char16_t>
+        -:  385:    {
+        -:  386:      typedef char16_t          char_type;
+        -:  387:      typedef uint_least16_t    int_type;
+        -:  388:      typedef streamoff         off_type;
+        -:  389:      typedef u16streampos      pos_type;
+        -:  390:      typedef mbstate_t         state_type;
+        -:  391:
+        -:  392:      static void
+        -:  393:      assign(char_type& __c1, const char_type& __c2)
+        -:  394:      { __c1 = __c2; }
+        -:  395:
+        -:  396:      static bool
+        -:  397:      eq(const char_type& __c1, const char_type& __c2)
+        -:  398:      { return __c1 == __c2; }
+        -:  399:
+        -:  400:      static bool
+        -:  401:      lt(const char_type& __c1, const char_type& __c2)
+        -:  402:      { return __c1 < __c2; }
+        -:  403:
+        -:  404:      static int
+        -:  405:      compare(const char_type* __s1, const char_type* __s2, size_t __n)
+        -:  406:      {
+        -:  407:	for (size_t __i = 0; __i < __n; ++__i)
+        -:  408:	  if (lt(__s1[__i], __s2[__i]))
+        -:  409:	    return -1;
+        -:  410:	  else if (lt(__s2[__i], __s1[__i]))
+        -:  411:	    return 1;
+        -:  412:	return 0;
+        -:  413:      }
+        -:  414:
+        -:  415:      static size_t
+        -:  416:      length(const char_type* __s)
+        -:  417:      {
+        -:  418:	size_t __i = 0;
+        -:  419:	while (!eq(__s[__i], char_type()))
+        -:  420:	  ++__i;
+        -:  421:	return __i;
+        -:  422:      }
+        -:  423:
+        -:  424:      static const char_type*
+        -:  425:      find(const char_type* __s, size_t __n, const char_type& __a)
+        -:  426:      {
+        -:  427:	for (size_t __i = 0; __i < __n; ++__i)
+        -:  428:	  if (eq(__s[__i], __a))
+        -:  429:	    return __s + __i;
+        -:  430:	return 0;
+        -:  431:      }
+        -:  432:
+        -:  433:      static char_type*
+        -:  434:      move(char_type* __s1, const char_type* __s2, size_t __n)
+        -:  435:      {
+        -:  436:	return (static_cast<char_type*>
+        -:  437:		(__builtin_memmove(__s1, __s2, __n * sizeof(char_type))));
+        -:  438:      }
+        -:  439:
+        -:  440:      static char_type*
+        -:  441:      copy(char_type* __s1, const char_type* __s2, size_t __n)
+        -:  442:      {
+        -:  443:	return (static_cast<char_type*>
+        -:  444:		(__builtin_memcpy(__s1, __s2, __n * sizeof(char_type))));
+        -:  445:      }
+        -:  446:
+        -:  447:      static char_type*
+        -:  448:      assign(char_type* __s, size_t __n, char_type __a)
+        -:  449:      {
+        -:  450:	for (size_t __i = 0; __i < __n; ++__i)
+        -:  451:	  assign(__s[__i], __a);
+        -:  452:	return __s;
+        -:  453:      }
+        -:  454:
+        -:  455:      static char_type
+        -:  456:      to_char_type(const int_type& __c)
+        -:  457:      { return char_type(__c); }
+        -:  458:
+        -:  459:      static int_type
+        -:  460:      to_int_type(const char_type& __c)
+        -:  461:      { return int_type(__c); }
+        -:  462:
+        -:  463:      static bool
+        -:  464:      eq_int_type(const int_type& __c1, const int_type& __c2)
+        -:  465:      { return __c1 == __c2; }
+        -:  466:
+        -:  467:      static int_type
+        -:  468:      eof()
+        -:  469:      { return static_cast<int_type>(-1); }
+        -:  470:
+        -:  471:      static int_type
+        -:  472:      not_eof(const int_type& __c)
+        -:  473:      { return eq_int_type(__c, eof()) ? 0 : __c; }
+        -:  474:    };
+        -:  475:
+        -:  476:  template<>
+        -:  477:    struct char_traits<char32_t>
+        -:  478:    {
+        -:  479:      typedef char32_t          char_type;
+        -:  480:      typedef uint_least32_t    int_type;
+        -:  481:      typedef streamoff         off_type;
+        -:  482:      typedef u32streampos      pos_type;
+        -:  483:      typedef mbstate_t         state_type;
+        -:  484:
+        -:  485:      static void
+        -:  486:      assign(char_type& __c1, const char_type& __c2)
+        -:  487:      { __c1 = __c2; }
+        -:  488:
+        -:  489:      static bool
+        -:  490:      eq(const char_type& __c1, const char_type& __c2)
+        -:  491:      { return __c1 == __c2; }
+        -:  492:
+        -:  493:      static bool
+        -:  494:      lt(const char_type& __c1, const char_type& __c2)
+        -:  495:      { return __c1 < __c2; }
+        -:  496:
+        -:  497:      static int
+        -:  498:      compare(const char_type* __s1, const char_type* __s2, size_t __n)
+        -:  499:      {
+        -:  500:	for (size_t __i = 0; __i < __n; ++__i)
+        -:  501:	  if (lt(__s1[__i], __s2[__i]))
+        -:  502:	    return -1;
+        -:  503:	  else if (lt(__s2[__i], __s1[__i]))
+        -:  504:	    return 1;
+        -:  505:	return 0;
+        -:  506:      }
+        -:  507:
+        -:  508:      static size_t
+        -:  509:      length(const char_type* __s)
+        -:  510:      {
+        -:  511:	size_t __i = 0;
+        -:  512:	while (!eq(__s[__i], char_type()))
+        -:  513:	  ++__i;
+        -:  514:	return __i;
+        -:  515:      }
+        -:  516:
+        -:  517:      static const char_type*
+        -:  518:      find(const char_type* __s, size_t __n, const char_type& __a)
+        -:  519:      {
+        -:  520:	for (size_t __i = 0; __i < __n; ++__i)
+        -:  521:	  if (eq(__s[__i], __a))
+        -:  522:	    return __s + __i;
+        -:  523:	return 0;
+        -:  524:      }
+        -:  525:
+        -:  526:      static char_type*
+        -:  527:      move(char_type* __s1, const char_type* __s2, size_t __n)
+        -:  528:      {
+        -:  529:	return (static_cast<char_type*>
+        -:  530:		(__builtin_memmove(__s1, __s2, __n * sizeof(char_type))));
+        -:  531:      }
+        -:  532:
+        -:  533:      static char_type*
+        -:  534:      copy(char_type* __s1, const char_type* __s2, size_t __n)
+        -:  535:      { 
+        -:  536:	return (static_cast<char_type*>
+        -:  537:		(__builtin_memcpy(__s1, __s2, __n * sizeof(char_type))));
+        -:  538:      }
+        -:  539:
+        -:  540:      static char_type*
+        -:  541:      assign(char_type* __s, size_t __n, char_type __a)
+        -:  542:      {
+        -:  543:	for (size_t __i = 0; __i < __n; ++__i)
+        -:  544:	  assign(__s[__i], __a);
+        -:  545:	return __s;
+        -:  546:      }
+        -:  547:
+        -:  548:      static char_type
+        -:  549:      to_char_type(const int_type& __c)
+        -:  550:      { return char_type(__c); }
+        -:  551:
+        -:  552:      static int_type
+        -:  553:      to_int_type(const char_type& __c)
+        -:  554:      { return int_type(__c); }
+        -:  555:
+        -:  556:      static bool
+        -:  557:      eq_int_type(const int_type& __c1, const int_type& __c2)
+        -:  558:      { return __c1 == __c2; }
+        -:  559:
+        -:  560:      static int_type
+        -:  561:      eof()
+        -:  562:      { return static_cast<int_type>(-1); }
+        -:  563:
+        -:  564:      static int_type
+        -:  565:      not_eof(const int_type& __c)
+        -:  566:      { return eq_int_type(__c, eof()) ? 0 : __c; }
+        -:  567:    };
+        -:  568:
+        -:  569:_GLIBCXX_END_NAMESPACE
+        -:  570:
+        -:  571:#endif 
+        -:  572:
+        -:  573:#undef _CHAR_TRAITS_EOF
+        -:  574:
+        -:  575:#endif // _CHAR_TRAITS_H
